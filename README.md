@@ -2,7 +2,7 @@
 
 Incoming General Engineering student at Texas A&M University, pursuing an electrical engineering path with a computer engineering focus.
 
-My work spans embedded Linux, Nix/NixOS, ROS 2, networked systems, and interactive web audio. I’m specifically interested in computer architecture, digital design, GPU performance, and how memory hierarchy, data movement, and low-level software shape  system performance.
+My work spans embedded Linux, Nix/NixOS, ROS 2, networked systems, and interactive web audio. I'm specifically interested in computer architecture, digital design, and GPU performance.
 
 ## Projects
 

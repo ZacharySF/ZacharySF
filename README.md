@@ -1,12 +1,14 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/header-light.svg">
-  <img src="assets/header-light.svg" width="960" alt="Zachary Stubbs — embedded systems, computer architecture, and digital design. Texas A&amp;M Engineering.">
+  <img src="assets/header-light.svg" width="960" alt="Zachary Stubbs">
 </picture>
+
+<p><samp>/ low-level systems / computer architecture / operating systems</samp></p>
 
 General Engineering student at Texas A&M University, pursuing an electrical engineering path with a computer engineering focus.
 
-My work spans embedded Linux, Nix/NixOS, ROS 2, networked systems, digital signal processing, and interactive web audio. I'm specifically interested in computer architecture, digital design, and GPU performance.
+My projects span embedded Linux, Nix/NixOS, ROS 2, networked systems, digital signal processing, and interactive web audio.
 
 [Selected work](#user-content-selected-work) · [Toolkit](#user-content-toolkit) · [Contact](#user-content-contact)
 

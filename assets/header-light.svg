@@ -1,13 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 184" role="img" aria-labelledby="title desc" style="--fg:#1f2328;--muted:#59636e;--accent:#087f6d;--border:#d1d9e0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 164" role="img" aria-labelledby="title desc" style="--fg:#16161c;--muted:#60606e;--border:#d9d9e0">
   <title id="title">Zachary Stubbs</title>
-  <desc id="desc">Embedded systems, computer architecture, and digital design. Texas A&amp;M Engineering.</desc>
-  <g font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">
-    <path d="M1 16V168" stroke="var(--accent)" stroke-width="3"/>
-    <text x="30" y="33" fill="var(--accent)" font-size="18">~/zacharysf</text>
-    <text x="930" y="33" text-anchor="end" fill="var(--muted)" font-size="16" letter-spacing="1">TEXAS A&amp;M / ENGINEERING</text>
-    <text x="27" y="105" fill="var(--fg)" font-size="64" font-weight="600" letter-spacing="-2">Zachary Stubbs</text>
-    <text x="30" y="145" fill="var(--muted)" font-size="20">Embedded systems / Computer architecture / Digital design</text>
-    <path d="M30 168H930" stroke="var(--border)"/>
-    <path d="M30 168H160" stroke="var(--accent)" stroke-width="2"/>
-  </g>
+  <desc id="desc">A monochrome typographic wordmark.</desc>
+  <text x="2" y="25" fill="var(--muted)" font-family="Consolas, 'Liberation Mono', monospace" font-size="16" letter-spacing="4">ZACHARYSF</text>
+  <text x="0" y="122" fill="var(--fg)" font-family="Georgia, 'Times New Roman', serif" font-size="90" font-weight="400" letter-spacing="-3">Zachary Stubbs</text>
+  <path d="M2 155H958" stroke="var(--border)"/>
 </svg>

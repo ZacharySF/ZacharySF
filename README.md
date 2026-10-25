@@ -1,6 +1,6 @@
 <h1 align="center">Zachary Stubbs</h1>
 
-<h2 align="center">/ low-level systems / computer architecture / operating systems</h2>
+<p align="center"><strong>Low-level systems · Computer architecture · Operating systems</strong></p>
 
 General Engineering student at Texas A&M University, pursuing an electrical engineering path with a computer engineering focus.
 

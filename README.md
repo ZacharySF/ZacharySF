@@ -1,6 +1,10 @@
-# Zachary Stubbs
+<p align="center">
+  <img src="assets/zs-mark.svg" width="56" height="56" alt="">
+</p>
 
-## / low-level systems / computer architecture / operating systems
+<h1 align="center">Zachary Stubbs</h1>
+
+<h2 align="center">/ low-level systems / computer architecture / operating systems</h2>
 
 General Engineering student at Texas A&M University, pursuing an electrical engineering path with a computer engineering focus.
 
@@ -28,25 +32,25 @@ I'm strengthening my C++ build and debugging fundamentals while moving into RTL 
 
 ## Tech stack
 
-![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Bash](https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
-![FreeRTOS](https://img.shields.io/badge/FreeRTOS-2D6B46?style=for-the-badge)
-![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
-![Raspberry Pi](https://img.shields.io/badge/Raspberry_Pi-A22846?style=for-the-badge&logo=raspberrypi&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-24242B?style=for-the-badge&logo=linux&logoColor=white)
-![NixOS](https://img.shields.io/badge/NixOS-5277C3?style=for-the-badge&logo=nixos&logoColor=white)
-![ROS 2](https://img.shields.io/badge/ROS_2-22314E?style=for-the-badge&logo=ros&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
-![PlatformIO](https://img.shields.io/badge/PlatformIO-F5822A?style=for-the-badge&logo=platformio&logoColor=white)
-![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
-![Swift](https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Svelte](https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)
-![Tone.js](https://img.shields.io/badge/Tone.js-34343F?style=for-the-badge)
-![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-0B0D0B?style=for-the-badge&logo=cplusplus&logoColor=00E63A)
+![Python](https://img.shields.io/badge/Python-0B0D0B?style=for-the-badge&logo=python&logoColor=00E63A)
+![Bash](https://img.shields.io/badge/Bash-0B0D0B?style=for-the-badge&logo=gnubash&logoColor=00E63A)
+![FreeRTOS](https://img.shields.io/badge/FreeRTOS-0B0D0B?style=for-the-badge)
+![ESP32](https://img.shields.io/badge/ESP32-0B0D0B?style=for-the-badge&logo=espressif&logoColor=00E63A)
+![Raspberry Pi](https://img.shields.io/badge/Raspberry_Pi-0B0D0B?style=for-the-badge&logo=raspberrypi&logoColor=00E63A)
+![Linux](https://img.shields.io/badge/Linux-0B0D0B?style=for-the-badge&logo=linux&logoColor=00E63A)
+![NixOS](https://img.shields.io/badge/NixOS-0B0D0B?style=for-the-badge&logo=nixos&logoColor=00E63A)
+![ROS 2](https://img.shields.io/badge/ROS_2-0B0D0B?style=for-the-badge&logo=ros&logoColor=00E63A)
+![Git](https://img.shields.io/badge/Git-0B0D0B?style=for-the-badge&logo=git&logoColor=00E63A)
+![PlatformIO](https://img.shields.io/badge/PlatformIO-0B0D0B?style=for-the-badge&logo=platformio&logoColor=00E63A)
+![Gradle](https://img.shields.io/badge/Gradle-0B0D0B?style=for-the-badge&logo=gradle&logoColor=00E63A)
+![Kotlin](https://img.shields.io/badge/Kotlin-0B0D0B?style=for-the-badge&logo=kotlin&logoColor=00E63A)
+![Swift](https://img.shields.io/badge/Swift-0B0D0B?style=for-the-badge&logo=swift&logoColor=00E63A)
+![TypeScript](https://img.shields.io/badge/TypeScript-0B0D0B?style=for-the-badge&logo=typescript&logoColor=00E63A)
+![Node.js](https://img.shields.io/badge/Node.js-0B0D0B?style=for-the-badge&logo=nodedotjs&logoColor=00E63A)
+![Svelte](https://img.shields.io/badge/Svelte-0B0D0B?style=for-the-badge&logo=svelte&logoColor=00E63A)
+![Tone.js](https://img.shields.io/badge/Tone.js-0B0D0B?style=for-the-badge)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-0B0D0B?style=for-the-badge&logo=cloudflare&logoColor=00E63A)
 
 ## Contact
 

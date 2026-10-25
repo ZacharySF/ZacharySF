@@ -1,8 +1,4 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/nameplate-regular-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/nameplate-regular-light.svg">
-  <img src="assets/nameplate-regular-light.svg" width="960" alt="Zachary Stubbs">
-</picture>
+# Zachary Stubbs
 
 ## / low-level systems / computer architecture / operating systems
 

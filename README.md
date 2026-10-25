@@ -8,9 +8,9 @@ My work spans embedded Linux, Nix/NixOS, ROS 2, networked systems, digital signa
 
 ### [Determine](https://github.com/nunera/Determine)
 
-Determine caught my attention because it brings several of my interests into one very practical problem: turning distance-sensor readings into timely sound and vibration cues for blind and low-vision users. It's an assistive-tech prototype that keeps the wearable hardware simple and lets a phone handle the warning logic.
+I built Determine, an assistive-tech prototype that turns a forward distance reading into sound and vibration cues for blind and low-vision users. It pairs ESP32-based hardware with a phone-side warning engine, keeping the wearable simple while the phone handles sensor freshness, warning timing, and feedback. A 3D simulator runs the same engine so I can explore its behavior before testing with hardware.
 
-I'm drawn to the work between the sensor and the person: getting data across a network, deciding when it's still fresh enough to use, and making a cue that is useful rather than distracting. That connects with what I've been exploring in embedded systems, networking, and audio. I also like that its simulator runs the actual phone engine, giving those design choices something concrete to measure. It's still a prototype, with real-world performance and user validation ahead of it—not a proven mobility aid.
+This project brings together the parts of computer engineering I want to work on: how hardware and software divide the work, how data moves between devices, and how those choices affect response time. The goal is straightforward—make a cue arrive when it's useful, without overwhelming the person using it. Physical end-to-end performance and testing with blind and low-vision users still need validation.
 
 ### [Orion Mesh](https://github.com/ZacharySF/Orion-Mesh)
 

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" role="img" aria-labelledby="title desc" style="--fg:#f4f4f7;--muted:#a4a3b0;--accent:#c4bfd8;--border:#36353f">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" role="img" aria-labelledby="title desc" style="--fg:#18181e;--muted:#666473;--accent:#777087;--border:#d9d7e0">
   <title id="title">Zachary Stubbs</title>
   <desc id="desc">A high-contrast typographic nameplate with a technical grid and cool-gray registration marks.</desc>
   <g font-family="Consolas, 'Liberation Mono', monospace" fill="var(--muted)" font-size="16">
@@ -7,7 +7,7 @@
   </g>
   <path d="M24 52H936" stroke="var(--border)"/>
   <path d="M0 78V62H16 M944 62H960V78 M0 182V198H16 M944 198H960V182" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="21" y="157" fill="var(--fg)" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="700" letter-spacing="-5">ZACHARY STUBBS</text>
+  <text x="21" y="154" fill="var(--fg)" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="400" letter-spacing="-3">ZACHARY STUBBS</text>
   <path d="M24 208H936" stroke="var(--border)"/>
   <path d="M24 208H120" stroke="var(--accent)" stroke-width="2"/>
 </svg>

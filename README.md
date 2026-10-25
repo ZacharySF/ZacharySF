@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/abstract-mark.svg" width="44" height="22" alt="">
-</p>
-
 <h1 align="center">Zachary Stubbs</h1>
 
 <h2 align="center">/ low-level systems / computer architecture / operating systems</h2>

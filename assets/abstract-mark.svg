@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32" role="img" aria-labelledby="title" style="--c1:#36C6B5;--c2:#F2694B;--c3:#A68AD9">
-  <title id="title">Abstract paired-plane mark</title>
-  <path d="M8 26L21 6H29L16 26Z" fill="var(--c1)"/>
-  <path d="M35 26L48 6H56L43 26Z" fill="var(--c2)"/>
-  <path d="M25 16H39" fill="none" stroke="var(--c3)" stroke-width="2"/>
-</svg>

@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 164" role="img" aria-labelledby="title desc" style="--fg:#f2f2f6;--muted:#a9a9b8;--border:#373741">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" role="img" aria-labelledby="title desc" style="--fg:#f4f4f7;--muted:#a4a3b0;--accent:#c4bfd8;--border:#36353f">
   <title id="title">Zachary Stubbs</title>
-  <desc id="desc">A monochrome typographic wordmark.</desc>
-  <text x="2" y="25" fill="var(--muted)" font-family="Consolas, 'Liberation Mono', monospace" font-size="16" letter-spacing="4">ZACHARYSF</text>
-  <text x="0" y="122" fill="var(--fg)" font-family="Georgia, 'Times New Roman', serif" font-size="90" font-weight="400" letter-spacing="-3">Zachary Stubbs</text>
-  <path d="M2 155H958" stroke="var(--border)"/>
+  <desc id="desc">A high-contrast typographic nameplate with a technical grid and cool-gray registration marks.</desc>
+  <g font-family="Consolas, 'Liberation Mono', monospace" fill="var(--muted)" font-size="16">
+    <text x="24" y="31" letter-spacing="3">ZACHARYSF</text>
+    <text x="936" y="31" text-anchor="end" letter-spacing="1">TEXAS A&amp;M / ENGINEERING</text>
+  </g>
+  <path d="M24 52H936" stroke="var(--border)"/>
+  <path d="M0 78V62H16 M944 62H960V78 M0 182V198H16 M944 198H960V182" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="21" y="157" fill="var(--fg)" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="700" letter-spacing="-5">ZACHARY STUBBS</text>
+  <path d="M24 208H936" stroke="var(--border)"/>
+  <path d="M24 208H120" stroke="var(--accent)" stroke-width="2"/>
 </svg>

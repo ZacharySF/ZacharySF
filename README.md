@@ -4,13 +4,13 @@
   <img src="assets/header-light.svg" width="960" alt="Zachary Stubbs">
 </picture>
 
-<p><samp>/ low-level systems / computer architecture / operating systems</samp></p>
+### / low-level systems / computer architecture / operating systems
 
 General Engineering student at Texas A&M University, pursuing an electrical engineering path with a computer engineering focus.
 
 My projects span embedded Linux, Nix/NixOS, ROS 2, networked systems, digital signal processing, and interactive web audio.
 
-[Selected work](#user-content-selected-work) · [Toolkit](#user-content-toolkit) · [Contact](#user-content-contact)
+[Selected work](#user-content-selected-work) · [Tech stack](#user-content-tech-stack) · [Contact](#user-content-contact)
 
 ## Selected work
 
@@ -30,13 +30,21 @@ I co-authored Ichor, a collaborative browser synthesizer built with Svelte 5, Ty
 
 I'm strengthening my C++ build and debugging fundamentals while moving into RTL and GPU systems work. I want future projects to pair implementation with benchmarks and analysis.
 
-## Toolkit
+## Tech stack
 
-| Area | Tools used in my projects |
-| :--- | :--- |
-| Embedded & hardware | `C++` · `FreeRTOS` · `ESP32` · `I²C` · `Raspberry Pi` |
-| Systems & networking | `Nix/NixOS` · `ROS 2` · `CycloneDDS` · `BATMAN-adv` · `UDP` |
-| Applications & audio | `Kotlin` · `Swift` · `TypeScript` · `Svelte` · `Tone.js` |
+![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
+![FreeRTOS](https://img.shields.io/badge/FreeRTOS-2D6B46?style=for-the-badge)
+![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
+![Raspberry Pi](https://img.shields.io/badge/Raspberry_Pi-A22846?style=for-the-badge&logo=raspberrypi&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-24242B?style=for-the-badge&logo=linux&logoColor=white)
+![NixOS](https://img.shields.io/badge/NixOS-5277C3?style=for-the-badge&logo=nixos&logoColor=white)
+![ROS 2](https://img.shields.io/badge/ROS_2-22314E?style=for-the-badge&logo=ros&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+![Swift](https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Svelte](https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)
+![Tone.js](https://img.shields.io/badge/Tone.js-34343F?style=for-the-badge)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
 
 ## Contact
 

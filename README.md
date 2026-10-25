@@ -8,7 +8,7 @@ General Engineering student at Texas A&M University, pursuing an electrical engi
 
 My work spans embedded Linux, Nix/NixOS, ROS 2, networked systems, digital signal processing, and interactive web audio. I'm specifically interested in computer architecture, digital design, and GPU performance.
 
-[Selected work](#selected-work) · [Toolkit](#toolkit) · [Contact](#contact)
+[Selected work](#user-content-selected-work) · [Toolkit](#user-content-toolkit) · [Contact](#user-content-contact)
 
 ## Selected work
 

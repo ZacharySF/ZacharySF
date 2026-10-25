@@ -1,7 +1,7 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg?v=2">
-  <source media="(prefers-color-scheme: light)" srcset="assets/header-light.svg?v=2">
-  <img src="assets/header-light.svg?v=2" width="960" alt="Zachary Stubbs">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/nameplate-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/nameplate-light.svg">
+  <img src="assets/nameplate-light.svg" width="960" alt="Zachary Stubbs">
 </picture>
 
 ## / low-level systems / computer architecture / operating systems

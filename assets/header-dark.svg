@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 184" role="img" aria-labelledby="title desc" style="--fg:#e6edf3;--muted:#9da7b3;--accent:#67d5bd;--border:#30363d">
+  <title id="title">Zachary Stubbs</title>
+  <desc id="desc">Embedded systems, computer architecture, and digital design. Texas A&amp;M Engineering.</desc>
+  <g font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">
+    <path d="M1 16V168" stroke="var(--accent)" stroke-width="3"/>
+    <text x="30" y="33" fill="var(--accent)" font-size="18">~/zacharysf</text>
+    <text x="930" y="33" text-anchor="end" fill="var(--muted)" font-size="16" letter-spacing="1">TEXAS A&amp;M / ENGINEERING</text>
+    <text x="27" y="105" fill="var(--fg)" font-size="64" font-weight="600" letter-spacing="-2">Zachary Stubbs</text>
+    <text x="30" y="145" fill="var(--muted)" font-size="20">Embedded systems / Computer architecture / Digital design</text>
+    <path d="M30 168H930" stroke="var(--border)"/>
+    <path d="M30 168H160" stroke="var(--accent)" stroke-width="2"/>
+  </g>
+</svg>

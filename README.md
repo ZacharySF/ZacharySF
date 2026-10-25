@@ -1,10 +1,16 @@
-# Zachary Stubbs
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/header-light.svg">
+  <img src="assets/header-light.svg" width="960" alt="Zachary Stubbs — embedded systems, computer architecture, and digital design. Texas A&amp;M Engineering.">
+</picture>
 
 General Engineering student at Texas A&M University, pursuing an electrical engineering path with a computer engineering focus.
 
 My work spans embedded Linux, Nix/NixOS, ROS 2, networked systems, digital signal processing, and interactive web audio. I'm specifically interested in computer architecture, digital design, and GPU performance.
 
-## Projects
+[Selected work](#selected-work) · [Toolkit](#toolkit) · [Contact](#contact)
+
+## Selected work
 
 ### [Determine](https://github.com/nunera/Determine)
 
@@ -16,6 +22,20 @@ An embedded-networking study using two Raspberry Pis running NixOS, ROS 2 with C
 
 ### [Ichor](https://github.com/ZacharySF/ichor)
 
-I co-authored Ichor, a collaborative browser synthesizer built with Svelte 5, TypeScript, Tone.js, and Cloudflare Workers. My contributions included patch-schema and audio-engine features, Svelte UI controls, MIDI compatablity, keyboard interactions, and making the interactive preset library including 475 patches.
+I co-authored Ichor, a collaborative browser synthesizer built with Svelte 5, TypeScript, Tone.js, and Cloudflare Workers. My contributions included patch-schema and audio-engine features, Svelte UI controls, MIDI compatibility, keyboard interactions, and the interactive preset library with 475 patches.
+
+[Play the synthesizer ↗](https://ichor.songseeker.cc/)
 
 I'm strengthening my C++ build and debugging fundamentals while moving into RTL and GPU systems work. I want future projects to pair implementation with benchmarks and analysis.
+
+## Toolkit
+
+| Area | Tools used in my projects |
+| :--- | :--- |
+| Embedded & hardware | `C++` · `FreeRTOS` · `ESP32` · `I²C` · `Raspberry Pi` |
+| Systems & networking | `Nix/NixOS` · `ROS 2` · `CycloneDDS` · `BATMAN-adv` · `UDP` |
+| Applications & audio | `Kotlin` · `Swift` · `TypeScript` · `Svelte` · `Tone.js` |
+
+## Contact
+
+[LinkedIn ↗](https://linkedin.com/in/zsfs) · [Email ↗](mailto:Zachary.sf.stubbs@gmail.com)

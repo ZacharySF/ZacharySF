@@ -1,4 +1,10 @@
-<h1 align="center">Zachary Stubbs</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/name-serif-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/name-serif-light.svg">
+    <img src="assets/name-serif-light.svg" width="360" alt="Zachary Stubbs">
+  </picture>
+</h1>
 
 <p align="center"><strong>Low-level systems · Computer architecture · Operating systems</strong></p>
 

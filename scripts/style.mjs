@@ -35,6 +35,7 @@ export const README_W = 846; // GitHub profile README column, desktop
 const FACES = {
   sans500: ["PlexSans", 500, "ibm-plex-sans-500.woff"],
   sans600: ["PlexSans", 600, "ibm-plex-sans-600.woff"],
+  sans700: ["PlexSans", 700, "ibm-plex-sans-700.woff"],
   cond500: ["PlexCond", 500, "ibm-plex-sans-condensed-500.woff"],
 };
 export const SANS = "'PlexSans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";

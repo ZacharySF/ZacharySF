@@ -176,7 +176,7 @@ export function renderHero(data, { fonts = "" } = {}) {
   <g font-family="${SANS}" font-weight="500">
     <text x="${px}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">ZS-102 · ${data.repos.length} GPC · ${data.repos.length * SMS_PER_GPC} SM · 384-BIT</text>
     <text x="${px - 2}" y="72" font-weight="600" font-size="${TYPE.display}" letter-spacing="-0.4" fill="${p.text}">Zachary Stubbs</text>
-    <text x="${px}" y="96" font-weight="600" font-size="${TYPE.body}" fill="${p.text}">Low-level systems · Computer architecture · Operating systems</text>
+    <text x="${px}" y="96" font-weight="700" font-size="${TYPE.body}" fill="${p.text}">Low-level systems · Computer architecture · Operating systems</text>
     <text x="${px}" y="116" font-size="${TYPE.body}" fill="${p.text2}">Electrical &amp; Computer Engineering at Texas A&amp;M</text>
     <text x="${px}" y="140" font-size="${TYPE.label}" fill="${p.text3}">${data.totals.contributions} contributions across ${data.repos.length} projects · GPC7 is fused off</text>
     <g font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1" fill="${p.text3}">

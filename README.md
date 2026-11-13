@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/chip.svg" width="846" alt="Zachary Stubbs. Low-level systems, computer architecture, operating systems; Electrical and Computer Engineering at Texas A&amp;M. A GPU floorplan whose clusters light up with contributions to each project.">
+  <img src="assets/chip-header.svg" width="846" alt="Zachary Stubbs. Low-level systems, computer architecture, operating systems; Electrical and Computer Engineering at Texas A&amp;M. A GPU floorplan whose clusters light up with contributions to each project.">
 <br>
   <img src="assets/projects.svg" width="846" alt="Projects by layer: Determine, Orion Mesh, cleanroom, nixos-config, Ichor, Ginseng, rika!, research-evaluator">
 </p>

@@ -114,7 +114,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   };
   const fonts = fontCss(root);
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
-  write(join(root, "assets/chip.svg"), renderHero(gpuData, { fonts }));
+  write(join(root, "assets/chip-header.svg"), renderHero(gpuData, { fonts }));
   write(join(root, "assets/projects.svg"), renderProjects(layers, { fonts }));
   write(join(root, "assets/card-row.svg"), renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
 }

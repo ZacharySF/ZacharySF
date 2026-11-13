@@ -24,11 +24,20 @@ jobs:
           base: activity, community, repositories, metadata
           config_timezone: America/Chicago
           config_display: large
+          plugin_lines: yes
+      - uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.METRICS_TOKEN }}
+          user: ZacharySF
+          filename: metrics-languages.svg
+          template: classic
+          base: ""
+          config_timezone: America/Chicago
+          config_display: large
           plugin_languages: yes
           plugin_languages_details: percentage
           plugin_languages_limit: 8
           plugin_languages_ignored: html, css, dockerfile, mdsvex
-          plugin_lines: yes
 
   gpu:
     # The GPU die and graphics card images: re-fetch contributions, calendar and languages, redraw, commit if changed.

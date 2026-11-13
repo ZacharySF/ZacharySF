@@ -1,9 +1,5 @@
 <p align="center">
-  <img src="assets/die.svg" width="846" alt="Zachary Stubbs. Low-level systems, computer architecture, operating systems; Electrical and Computer Engineering at Texas A&amp;M. A GPU floorplan whose clusters light up with contributions to each project.">
-</p>
-
-<p align="center">
-  <img src="assets/card-row.svg" width="846" alt="The last 18 weeks of contributions as a lit grid on a graphics card; tech stack: C++, C, Rust, Python, TypeScript, Swift; ESP32, FreeRTOS, PlatformIO, Raspberry Pi; Linux, NixOS, bubblewrap, dinit, Docker; ROS 2, CycloneDDS, BATMAN-adv, UDP; Svelte, Tone.js, Cloudflare, Tauri">
+  <img src="assets/chip.svg" width="846" alt="Zachary Stubbs. Low-level systems, computer architecture, operating systems; Electrical and Computer Engineering at Texas A&amp;M. A GPU floorplan whose clusters light up with contributions to each project.">
 </p>
 
 <p align="center">
@@ -19,6 +15,14 @@
   <a href="https://github.com/nunera/ginseng">Ginseng</a> ·
   <a href="https://github.com/ZacharySF/kitty">rika!</a> (<a href="https://github.com/ZacharySF/rika/releases/latest">download</a>) ·
   <a href="https://github.com/ZacharySF/research-evaluator">research-evaluator</a>
+</p>
+
+<p align="center">
+  <img src="metrics-languages.svg" width="846" alt="Most used languages">
+</p>
+
+<p align="center">
+  <img src="assets/card-row.svg" width="846" alt="The last 18 weeks of contributions as a lit grid on a graphics card; tech stack: C++, C, Rust, Python, TypeScript, Swift; ESP32, FreeRTOS, PlatformIO, Raspberry Pi; Linux, NixOS, bubblewrap, dinit, Docker; ROS 2, CycloneDDS, BATMAN-adv, UDP; Svelte, Tone.js, Cloudflare, Tauri">
 </p>
 
 <p align="center">

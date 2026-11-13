@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderCard, renderLayer, wrap, CARD } from "./build-assets.mjs";
+import { renderProjects, wrap, SLOT } from "./build-assets.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo, shareLanguages } from "./fetch-github.mjs";
 import { layers } from "./projects.mjs";
@@ -37,22 +37,20 @@ test("GPC slots without a repo are drawn fused off, as on a harvested die", () =
   assert.equal((svg.match(/data-fused=/g) ?? []).length, 8 - gpuData.repos.length);
 });
 
-const sample = {
-  slug: "x",
-  title: "Ampersand & <tags>",
-  repo: "owner/repo",
-  url: "https://github.com/owner/repo",
-  role: "OS core",
-  language: "Rust",
-  description: "Kernel keeps evidence read only & every call is signed <receipt>.",
-  tags: ["namespaces", "s6-rc & dinit"],
-};
+const sample = [
+  {
+    slug: "os",
+    title: "Kernels & <isolation>",
+    level: "kernel",
+    projects: [{ slug: "x", title: "Ampersand & co", role: "OS core", short: "Kernel keeps evidence read only & signs every <receipt>." }],
+  },
+];
 
 test("markup characters in project data are escaped, not emitted raw", () => {
-  const svg = renderCard(sample);
+  const svg = renderProjects(sample);
   assert.ok(!svg.includes("& "), "raw ampersand would make the SVG invalid");
-  assert.ok(!svg.includes("<tags>") && !svg.includes("<receipt>"));
-  assert.ok(svg.includes("Ampersand &amp; &lt;tags&gt;"));
+  assert.ok(!svg.includes("<isolation>") && !svg.includes("<receipt>"));
+  assert.ok(svg.includes("Ampersand &amp; co"));
 });
 
 test("wrap never exceeds the line budget and keeps every word", () => {
@@ -62,19 +60,23 @@ test("wrap never exceeds the line budget and keeps every word", () => {
   assert.equal(lines.join(" "), text);
 });
 
-test("every real description fits inside the card body", () => {
+test("every real project summary fits its slot", () => {
   for (const layer of layers) {
     for (const project of layer.projects) {
-      const lines = wrap(project.description, CARD.charsPerLine);
-      assert.ok(lines.length <= CARD.maxLines, `${project.slug}: ${lines.length} lines`);
+      const lines = wrap(project.short, SLOT.charsPerLine);
+      assert.ok(lines.length <= SLOT.maxLines, `${project.slug}: ${lines.length} lines`);
     }
   }
 });
 
-test("layer banner highlights exactly its own depth segment", () => {
-  const svg = renderLayer(layers[1], 1, layers.length);
-  assert.equal((svg.match(/data-active="true"/g) ?? []).length, 1);
-  assert.ok(svg.includes('data-depth="1" data-active="true"'));
+test("the projects panel lists every project once, each layer row lighting only its own depth bar", () => {
+  const svg = renderProjects(layers);
+  const total = layers.reduce((n, l) => n + l.projects.length, 0);
+  assert.equal((svg.match(/data-project=/g) ?? []).length, total);
+  layers.forEach((_, i) => {
+    assert.equal((svg.match(new RegExp(`data-row="${i}" data-depth="\\d" data-active="true"`, "g")) ?? []).length, 1);
+    assert.ok(svg.includes(`data-row="${i}" data-depth="${i}" data-active="true"`));
+  });
 });
 
 const gpuData = {

@@ -9,10 +9,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const PALETTE = {
-  bg: "#05070b",
-  surface: "#0c111c",
-  well: "#101726",
-  structure: "#1a2336",
+  bg: "#0d1117", // GitHub's dark page colour, so panels sit flush on the profile
+  surface: "#141b27",
+  well: "#19212f",
+  structure: "#232d40",
   keyline: "#30363d", // panel edge: >= 1.5:1 on both GitHub page backgrounds
   text: "#f1f5ff",
   text2: "#cbd5e6",
@@ -22,8 +22,7 @@ export const PALETTE = {
   silver: "#8b95a3",
   silverLight: "#c8ced6",
   silverDark: "#4b5563",
-  cap: "#a78a5a",
-  gold: "#c9a24a",
+  cap: "#9aa3ae", // decoupling caps on the substrate, a shade of silver
 };
 
 // Type scale: at most four sizes per image; nothing below 12 px at 1x.

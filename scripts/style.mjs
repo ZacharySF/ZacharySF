@@ -1,6 +1,6 @@
 // Design tokens shared by every generated image on the profile (see the technical-svg-craft skill).
 // Palette "Silicon ice" mapped onto roles; typeface IBM Plex Sans (+ Condensed for part designators).
-//   bg / surface / structure / keyline     neutral subject (silicon, PCB, metal)
+//   bg / surface / structure               neutral subject (silicon, PCB, metal)
 //   text / text2 / text3                   primary, secondary, tertiary (all >= 4.5:1 on bg)
 //   ramp (4 steps)                         data only: lit SMs, lit PHY teeth, contribution bars
 //   accent                                 one highlight (role tags, active layer)
@@ -9,11 +9,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const PALETTE = {
-  bg: "#0d1117", // GitHub's dark page colour, so panels sit flush on the profile
+  bg: "#0d1117", // GitHub's dark page colour, so images sit flush on the profile
   surface: "#141b27",
   well: "#19212f",
   structure: "#232d40",
-  keyline: "#30363d", // panel edge: >= 1.5:1 on both GitHub page backgrounds
   text: "#f1f5ff",
   text2: "#cbd5e6",
   text3: "#8796ad",
@@ -51,9 +50,5 @@ export function fontCss(root, faces = Object.keys(FACES)) {
     })
     .join("");
 }
-
-/** The opaque panel every image sits on: reads as deliberate on both light and dark GitHub. */
-export const panel = (w, h) =>
-  `<rect x="0.5" y="0.5" width="${w - 1}" height="${h - 1}" rx="${RADIUS.panel}" fill="${PALETTE.bg}" stroke="${PALETTE.keyline}"/>`;
 
 export const f1 = (n) => (Math.round(n * 10) / 10).toString();

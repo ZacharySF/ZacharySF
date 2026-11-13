@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { renderCalendarCard } from "./card.mjs";
 import { renderHero } from "./gpu.mjs";
 import { layers, stack } from "./projects.mjs";
-import { COND, fontCss, MARGIN, PALETTE as p, panel, README_W, SANS, TYPE } from "./style.mjs";
+import { COND, fontCss, MARGIN, PALETTE as p, README_W, SANS, TYPE } from "./style.mjs";
 import { escapeXml } from "./svg.mjs";
 
 /** A project slot in the panel: 275 px wide, two 12 px lines of summary. */
@@ -63,7 +63,6 @@ export function renderProjects(layerList, { fonts = "" } = {}) {
   <title id="t">Projects by layer, hardware first</title>
   <desc id="d">${escapeXml(names)}</desc>
   ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
-  ${panel(W, H)}
   <g font-family="${SANS}" font-weight="500">
     <text x="${MARGIN}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">PROJECTS · BY LAYER, HARDWARE FIRST</text>
     ${rows}
@@ -72,7 +71,7 @@ export function renderProjects(layerList, { fonts = "" } = {}) {
 `;
 }
 
-/** The tech stack, sized to sit beside the 440 x 232 graphics card (no panel, flush on the page). */
+/** The tech stack, sized to sit beside the 440 x 232 graphics card (no flush on the page). */
 export const STACK = { width: 400, height: 232, charsPerLine: 44 };
 
 export function renderStack(rows, { fonts = "" } = {}) {

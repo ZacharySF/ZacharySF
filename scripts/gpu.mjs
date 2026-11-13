@@ -5,7 +5,7 @@
 //   MC  = one memory controller per language, its PHY teeth lit by that language's share of bytes
 // Drawn 1:1 for the 846 px README column with the shared tokens in style.mjs.
 import { escapeXml } from "./svg.mjs";
-import { COND, MARGIN, PALETTE as p, panel, README_W, SANS, TYPE } from "./style.mjs";
+import { COND, MARGIN, PALETTE as p, README_W, SANS, TYPE } from "./style.mjs";
 
 const SMS_PER_GPC = 12;
 const GPC_SLOTS = 8;
@@ -152,7 +152,6 @@ export function renderHero(data, { fonts = "" } = {}) {
     <pattern id="phy" width="20" height="4" patternUnits="userSpaceOnUse"><rect width="20" height="4" fill="${p.surface}"/><rect x="2" y="1" width="12" height="2" fill="${p.well}"/><rect x="16" y="1" width="2" height="2" fill="${p.structure}"/></pattern>
     <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern>
   </defs>
-  ${panel(W, H)}
 
   <g shape-rendering="crispEdges">
     <rect x="${ring.x}" y="${ring.y}" width="${ring.w}" height="${ring.h}" rx="2" fill="${p.surface}"/>

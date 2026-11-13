@@ -11,7 +11,6 @@
     <pattern id="phy" width="20" height="4" patternUnits="userSpaceOnUse"><rect width="20" height="4" fill="#141b27"/><rect x="2" y="1" width="12" height="2" fill="#19212f"/><rect x="16" y="1" width="2" height="2" fill="#232d40"/></pattern>
     <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#141b27"/><path d="M0 4 L4 0" stroke="#232d40"/></pattern>
   </defs>
-  <rect x="0.5" y="0.5" width="845" height="307" rx="6" fill="#0d1117" stroke="#30363d"/>
 
   <g shape-rendering="crispEdges">
     <rect x="24" y="24" width="304" height="260" rx="2" fill="#141b27"/>

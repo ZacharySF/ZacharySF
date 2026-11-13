@@ -32,7 +32,7 @@
   <g font-family="'PlexSans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="500">
     <text x="360" y="33" font-family="'PlexCond', 'PlexSans', 'Arial Narrow', sans-serif" font-size="12" letter-spacing="1.6" fill="#8796ad">ZS-102 · 7 GPC · 84 SM · 384-BIT</text>
     <text x="358" y="72" font-weight="600" font-size="32" letter-spacing="-0.4" fill="#f1f5ff">Zachary Stubbs</text>
-    <text x="360" y="96" font-size="14" fill="#cbd5e6">Low-level systems · Computer architecture · Operating systems</text>
+    <text x="360" y="96" font-weight="600" font-size="14" fill="#f1f5ff">Low-level systems · Computer architecture · Operating systems</text>
     <text x="360" y="116" font-size="14" fill="#cbd5e6">Electrical &amp; Computer Engineering at Texas A&amp;M</text>
     <text x="360" y="140" font-size="12" fill="#8796ad">652 contributions across 7 projects · GPC7 is fused off</text>
     <g font-family="'PlexCond', 'PlexSans', 'Arial Narrow', sans-serif" font-size="12" letter-spacing="1" fill="#8796ad">

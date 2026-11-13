@@ -1,6 +1,15 @@
 // Profile projects grouped by layer, deepest (closest to hardware) first.
 // Edit here, then run `node scripts/build-assets.mjs` to regenerate assets/projects.svg.
 
+// Tech stack, shown beside the graphics card: [label, items].
+export const stack = [
+  ["LANGUAGES", "C++ · C · Rust · Python · TypeScript · Swift"],
+  ["EMBEDDED", "ESP32 · FreeRTOS · PlatformIO · Raspberry Pi"],
+  ["SYSTEMS", "Linux · NixOS · bubblewrap · dinit · Docker"],
+  ["NETWORKS", "ROS 2 · CycloneDDS · BATMAN-adv · UDP"],
+  ["APPS", "Svelte · Tone.js · Cloudflare · Tauri"],
+];
+
 export const layers = [
   {
     slug: "embedded",

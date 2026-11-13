@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderCalendarCard } from "./card.mjs";
 import { renderHero } from "./gpu.mjs";
-import { layers } from "./projects.mjs";
+import { layers, stack } from "./projects.mjs";
 import { COND, fontCss, MARGIN, PALETTE as p, panel, README_W, SANS, TYPE } from "./style.mjs";
 import { escapeXml } from "./svg.mjs";
 
@@ -72,6 +72,29 @@ export function renderProjects(layerList, { fonts = "" } = {}) {
 `;
 }
 
+/** The tech stack, sized to sit beside the 440 x 232 graphics card (no panel, flush on the page). */
+export const STACK = { width: 400, height: 232, charsPerLine: 44 };
+
+export function renderStack(rows, { fonts = "" } = {}) {
+  const { width: W, height: H } = STACK;
+  const lines = rows
+    .map(([label, items], i) => {
+      const y = 76 + i * 34;
+      return `<g data-stack-row="${i}"><text x="0" y="${y}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1" fill="${p.text3}">${escapeXml(label)}</text><text x="96" y="${y}" font-size="${TYPE.label}" fill="${p.text2}">${escapeXml(items)}</text></g>`;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">
+  <title id="t">Tech stack</title>
+  <desc id="d">${escapeXml(rows.map(([l, items]) => `${l}: ${items}`).join("; "))}</desc>
+  ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
+  <g font-family="${SANS}" font-weight="500">
+    <text x="0" y="40" font-weight="600" font-size="${TYPE.title}" fill="${p.text}">Tech stack</text>
+    ${lines}
+  </g>
+</svg>
+`;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const write = (path, svg) => {
@@ -82,5 +105,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
   write(join(root, "assets/die.svg"), renderHero(gpuData, { fonts }));
   write(join(root, "assets/projects.svg"), renderProjects(layers, { fonts }));
+  write(join(root, "assets/stack.svg"), renderStack(stack, { fonts }));
   write(join(root, "assets/gpu-card.svg"), renderCalendarCard(gpuData.calendar));
 }

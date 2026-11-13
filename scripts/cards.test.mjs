@@ -145,3 +145,11 @@ test("shareLanguages merges bytes across repos and keeps the top n", () => {
     { name: "C", share: 0.1 },
   ]);
 });
+
+test("every tech stack row fits beside its label", async () => {
+  const { stack } = await import("./projects.mjs");
+  const { STACK, renderStack } = await import("./build-assets.mjs");
+  for (const [, items] of stack) assert.ok(items.length <= STACK.charsPerLine, items);
+  const svg = renderStack(stack);
+  assert.equal((svg.match(/data-stack-row=/g) ?? []).length, stack.length);
+});

@@ -5,7 +5,7 @@
 <p align="center">
   <img src="metrics.svg" width="846" alt="GitHub stats for ZacharySF: activity, repositories and languages">
   <br>
-  <img src="assets/gpu-card.svg" width="440" align="middle" alt="The last 18 weeks of contributions as a lit grid on a graphics card"><img src="assets/stack.svg" width="400" align="middle" alt="Tech stack: C++, C, Rust, Python, TypeScript, Swift; ESP32, FreeRTOS, PlatformIO, Raspberry Pi; Linux, NixOS, bubblewrap, dinit, Docker; ROS 2, CycloneDDS, BATMAN-adv, UDP; Svelte, Tone.js, Cloudflare, Tauri">
+  <img src="assets/card-row.svg" width="846" alt="The last 18 weeks of contributions as a lit grid on a graphics card; tech stack: C++, C, Rust, Python, TypeScript, Swift; ESP32, FreeRTOS, PlatformIO, Raspberry Pi; Linux, NixOS, bubblewrap, dinit, Docker; ROS 2, CycloneDDS, BATMAN-adv, UDP; Svelte, Tone.js, Cloudflare, Tauri">
 </p>
 
 <p align="center">

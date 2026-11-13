@@ -95,6 +95,18 @@ export function renderStack(rows, { fonts = "" } = {}) {
 `;
 }
 
+/** The graphics card (left) and tech stack (right) as one 846 px row, so they never wrap apart. */
+export function renderCardRow(cardSvg, stackSvg, { fonts = "" } = {}) {
+  const H = STACK.height;
+  const place = (svg, x) => svg.replace("<svg ", `<svg x="${x}" y="0" `);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${README_W}" height="${H}" viewBox="0 0 ${README_W} ${H}" role="img" aria-label="Contributions on a graphics card, and tech stack">
+  ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
+  ${place(cardSvg, 0)}
+  ${place(stackSvg, 384)}
+</svg>
+`;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const write = (path, svg) => {
@@ -105,6 +117,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
   write(join(root, "assets/die.svg"), renderHero(gpuData, { fonts }));
   write(join(root, "assets/projects.svg"), renderProjects(layers, { fonts }));
-  write(join(root, "assets/stack.svg"), renderStack(stack, { fonts }));
-  write(join(root, "assets/gpu-card.svg"), renderCalendarCard(gpuData.calendar));
+  write(join(root, "assets/card-row.svg"), renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
 }

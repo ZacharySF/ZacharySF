@@ -20,9 +20,9 @@ export function calendarStats(days) {
 
 export const CARD_WEEKS = 18;
 
-const C = 9; // grid cell, px along each iso axis
-const OX = 146;
-const OY = 48;
+const C = 10; // grid cell, px along each iso axis
+const OX = 104;
+const OY = 42;
 const THICK = 12;
 const r1 = (n) => Math.round(n * 10) / 10;
 const iso = (i, j, h = 0) => [r1(OX + (i - j) * C * 0.866), r1(OY + (i + j) * C * 0.5 - h)];

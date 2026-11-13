@@ -21,6 +21,12 @@
   <a href="https://github.com/nunera/ginseng">Ginseng</a> ·
   <a href="https://github.com/ZacharySF/kitty">rika!</a> (<a href="https://github.com/ZacharySF/rika/releases/latest">download</a>) ·
   <a href="https://github.com/ZacharySF/research-evaluator">research-evaluator</a>
-  <br>
-  <a href="https://linkedin.com/in/zsfs">LinkedIn</a> · <a href="mailto:Zachary.sf.stubbs@gmail.com">Email</a>
+</p>
+
+<h2 align="center">Contact</h2>
+
+<p align="center">
+  <a href="mailto:Zachary.sf.stubbs@gmail.com">Zachary.sf.stubbs@gmail.com</a> ·
+  <a href="https://linkedin.com/in/zsfs">LinkedIn</a> ·
+  <a href="https://github.com/ZacharySF">GitHub</a>
 </p>

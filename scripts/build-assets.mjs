@@ -60,11 +60,11 @@ export function renderProjects(layerList, { fonts = "" } = {}) {
     .join("\n    ");
   const names = layerList.flatMap((l) => l.projects.map((pr) => pr.title)).join(", ");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">
-  <title id="t">Projects by layer, hardware first</title>
+  <title id="t">Projects by layer</title>
   <desc id="d">${escapeXml(names)}</desc>
   ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
   <g font-family="${SANS}" font-weight="500">
-    <text x="${MARGIN}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">PROJECTS · BY LAYER, HARDWARE FIRST</text>
+    <text x="${MARGIN}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">PROJECTS BY LAYER</text>
     ${rows}
   </g>
 </svg>

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/projects.svg" width="846" alt="Projects by layer, hardware first: Determine, Orion Mesh, cleanroom, nixos-config, Ichor, Ginseng, rika!, research-evaluator">
+  <img src="assets/projects.svg" width="846" alt="Projects by layer: Determine, Orion Mesh, cleanroom, nixos-config, Ichor, Ginseng, rika!, research-evaluator">
 </p>
 
 <p align="center">

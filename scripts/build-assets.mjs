@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderCalendarCard } from "./card.mjs";
 import { renderHero } from "./gpu.mjs";
-import { layers, tools } from "./projects.mjs";
+import { layers } from "./projects.mjs";
 import { COND, fontCss, MARGIN, PALETTE as p, panel, README_W, SANS, TYPE } from "./style.mjs";
 import { escapeXml } from "./svg.mjs";
 
@@ -80,7 +80,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   };
   const fonts = fontCss(root);
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
-  write(join(root, "assets/hero.svg"), renderHero(gpuData, { fonts }));
+  write(join(root, "assets/die.svg"), renderHero(gpuData, { fonts }));
   write(join(root, "assets/projects.svg"), renderProjects(layers, { fonts }));
-  write(join(root, "assets/calendar.svg"), renderCalendarCard(gpuData.calendar, { fonts, tools }));
+  write(join(root, "assets/gpu-card.svg"), renderCalendarCard(gpuData.calendar));
 }

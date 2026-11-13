@@ -1,14 +1,6 @@
 // Profile projects grouped by layer, deepest (closest to hardware) first.
 // Edit here, then run `node scripts/build-assets.mjs` to regenerate assets/projects.svg.
 
-// Tools, shown under the contribution calendar; one line per group.
-export const tools = [
-  "C++ · C · Rust · Python · TypeScript · Kotlin · Swift",
-  "ESP32 · FreeRTOS · PlatformIO · Raspberry Pi · ROS 2",
-  "Linux · NixOS · bubblewrap · dinit · Docker",
-  "Svelte · Tone.js · Cloudflare · Tauri · SQLite",
-];
-
 export const layers = [
   {
     slug: "embedded",

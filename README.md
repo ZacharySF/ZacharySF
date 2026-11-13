@@ -1,9 +1,11 @@
 <p align="center">
-  <img src="assets/hero.svg" width="846" alt="Zachary Stubbs. Low-level systems, computer architecture, operating systems; Electrical and Computer Engineering at Texas A&amp;M. A GPU floorplan whose clusters light up with contributions to each project.">
+  <img src="assets/die.svg" width="846" alt="Zachary Stubbs. Low-level systems, computer architecture, operating systems; Electrical and Computer Engineering at Texas A&amp;M. A GPU floorplan whose clusters light up with contributions to each project.">
 </p>
 
 <p align="center">
-  <img src="metrics.svg" width="480" align="top" alt="GitHub stats for ZacharySF: activity, repositories and languages"><img src="assets/calendar.svg" width="360" align="top" alt="Contributions over the last 18 weeks as a lit grid on a graphics card, plus tools">
+  <img src="metrics.svg" width="846" alt="GitHub stats for ZacharySF: activity, repositories and languages">
+  <br>
+  <img src="assets/gpu-card.svg" width="440" alt="The last 18 weeks of contributions as a lit grid on a graphics card">
 </p>
 
 <p align="center">

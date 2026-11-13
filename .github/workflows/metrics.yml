@@ -23,7 +23,7 @@ jobs:
           template: classic
           base: activity, community, repositories, metadata
           config_timezone: America/Chicago
-          config_display: regular
+          config_display: large
           plugin_languages: yes
           plugin_languages_details: percentage
           plugin_languages_limit: 8

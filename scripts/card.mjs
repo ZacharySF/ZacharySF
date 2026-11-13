@@ -2,8 +2,7 @@
 // "isocalendar": the card lies flat and its shroud top is the calendar grid (weeks along the card,
 // days across it), each day a flat tile lit on the blue ramp by its contribution level.
 // The fan, I/O bracket and PCIe edge connector make it read as a GPU.
-import { COND, MARGIN, PALETTE as p, panel, SANS, TYPE } from "./style.mjs";
-import { escapeXml } from "./svg.mjs";
+import { PALETTE as p } from "./style.mjs";
 
 /** Best streak, running streak, busiest day and mean contributions per day. */
 export function calendarStats(days) {
@@ -22,16 +21,16 @@ export function calendarStats(days) {
 export const CARD_WEEKS = 18;
 
 const C = 9; // grid cell, px along each iso axis
-const OX = 104;
-const OY = 84;
+const OX = 146;
+const OY = 48;
 const THICK = 12;
 const r1 = (n) => Math.round(n * 10) / 10;
 const iso = (i, j, h = 0) => [r1(OX + (i - j) * C * 0.866), r1(OY + (i + j) * C * 0.5 - h)];
 const pts = (...ps) => ps.map(([x, y]) => `${x},${y}`).join(" ");
 
-export function renderCalendarCard(calendar, { fonts = "", tools = [] } = {}) {
-  const W = 360; // shown 1:1 beside the 480 px stats dashboard
-  const H = 461; // same height as the dashboard so the row ends flush
+export function renderCalendarCard(calendar, { fonts = "" } = {}) {
+  const W = 440;
+  const H = 232;
   const weeks = calendar.weeks.slice(-CARD_WEEKS);
   const days = weeks.flat();
   const stats = calendarStats(days);
@@ -80,22 +79,10 @@ export function renderCalendarCard(calendar, { fonts = "", tools = [] } = {}) {
     })
     .join("");
 
-  const statY = 296;
-  const stat = (x, value, label) =>
-    `<text x="${x}" y="${statY}" font-weight="600" font-size="${TYPE.title}" fill="${p.text}">${value}</text><text x="${x}" y="${statY + 16}" font-size="${TYPE.label}" fill="${p.text3}">${label}</text>`;
-  const toolLines = tools.map((line, i) => `<text x="${MARGIN}" y="${372 + i * 18}" font-size="${TYPE.label}" fill="${p.text2}">${escapeXml(line)}</text>`).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">
   <title id="t">Contribution calendar on a graphics card</title>
   <desc id="d">${stats.total} contributions in the last ${CARD_WEEKS} weeks. Best day ${stats.maxDay.count} on ${stats.maxDay.date}, best streak ${stats.bestStreak} days.</desc>
   ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
-  ${panel(W, H)}
-  <g font-family="${SANS}" font-weight="500">
-    <text x="${MARGIN}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">CONTRIBUTIONS · LAST ${CARD_WEEKS} WEEKS</text>
-    ${stat(MARGIN, stats.total, "contributions")}${stat(136, stats.maxDay.count, "best day")}${stat(248, `${stats.bestStreak} days`, "best streak")}
-    <rect x="${MARGIN}" y="332" width="${W - 2 * MARGIN}" height="1" fill="${p.structure}"/>
-    <text x="${MARGIN}" y="354" font-weight="600" font-size="${TYPE.body}" fill="${p.text}">Tools</text>
-    ${toolLines}
-  </g>
 
   ${bracket}
   <polygon points="${sideJ}" fill="${p.well}"/>

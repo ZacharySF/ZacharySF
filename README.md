@@ -3,8 +3,6 @@
 </p>
 
 <p align="center">
-  <img src="metrics.svg" width="846" alt="GitHub stats for ZacharySF: activity, repositories and languages">
-  <br>
   <img src="assets/card-row.svg" width="846" alt="The last 18 weeks of contributions as a lit grid on a graphics card; tech stack: C++, C, Rust, Python, TypeScript, Swift; ESP32, FreeRTOS, PlatformIO, Raspberry Pi; Linux, NixOS, bubblewrap, dinit, Docker; ROS 2, CycloneDDS, BATMAN-adv, UDP; Svelte, Tone.js, Cloudflare, Tauri">
 </p>
 
@@ -21,6 +19,10 @@
   <a href="https://github.com/nunera/ginseng">Ginseng</a> ·
   <a href="https://github.com/ZacharySF/kitty">rika!</a> (<a href="https://github.com/ZacharySF/rika/releases/latest">download</a>) ·
   <a href="https://github.com/ZacharySF/research-evaluator">research-evaluator</a>
+</p>
+
+<p align="center">
+  <img src="metrics.svg" width="846" alt="GitHub stats for ZacharySF: activity, repositories and languages">
 </p>
 
 <h2 align="center">Contact</h2>

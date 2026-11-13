@@ -153,3 +153,9 @@ test("every tech stack row fits beside its label", async () => {
   const svg = renderStack(stack);
   assert.equal((svg.match(/data-stack-row=/g) ?? []).length, stack.length);
 });
+
+test("each GPC on the die is labelled so the map rows can be found on it", () => {
+  const svg = renderHero(gpuData);
+  for (let g = 0; g < 8; g++) assert.ok(svg.includes(`data-gpc-label="${g}"`), `GPC${g}`);
+  assert.ok(svg.includes(">PROJECT<") && svg.includes(">CONTRIBUTIONS<"), "map columns are headed");
+});

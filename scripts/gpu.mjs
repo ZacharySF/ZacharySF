@@ -125,7 +125,7 @@ export function renderHero(data, { fonts = "" } = {}) {
   // --- Side panel: one focal name, then the GPC map with the same log-scale SM strip the die uses ---
   const px = ring.x + ring.w + 32;
   const right = W - MARGIN;
-  const rowY = (g) => 164 + g * 16;
+  const rowY = (g) => 180 + g * 14;
   const gpcMap = data.repos
     .map((repo, g) => {
       const y = rowY(g);
@@ -167,15 +167,24 @@ export function renderHero(data, { fonts = "" } = {}) {
     <rect x="${cx}" y="${xbar.y}" width="${CENTER_W}" height="${xbar.h}" fill="url(#wires)"/>
     <rect x="${cx + 6}" y="${xbar.y + 6}" width="${CENTER_W - 12}" height="${xbar.h - 12}" fill="url(#logicDense)"/>
   </g>
+  <g font-family="${COND}" font-weight="500" font-size="${TYPE.label}" letter-spacing="0.3" fill="${p.text2}">
+    ${Array.from({ length: GPC_SLOTS }, (_, g) => {
+      const { x, y, top } = gpcAt(g);
+      return `<text data-gpc-label="${g}" x="${x + 3}" y="${stripY(y, top) + 11}"${g < data.repos.length ? "" : ` fill="${p.text3}"`}>GPC${g}</text>`;
+    }).join("")}
+  </g>
 
   <g font-family="${SANS}" font-weight="500">
     <text x="${px}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">ZS-102 · ${data.repos.length} GPC · ${data.repos.length * SMS_PER_GPC} SM · 384-BIT</text>
     <text x="${px - 2}" y="72" font-weight="600" font-size="${TYPE.display}" letter-spacing="-0.4" fill="${p.text}">Zachary Stubbs</text>
     <text x="${px}" y="96" font-size="${TYPE.body}" fill="${p.text2}">Low-level systems · Computer architecture · Operating systems</text>
     <text x="${px}" y="116" font-size="${TYPE.body}" fill="${p.text2}">Electrical &amp; Computer Engineering at Texas A&amp;M</text>
-    <text x="${px}" y="144" font-size="${TYPE.label}" fill="${p.text3}">${data.totals.contributions} contributions across ${data.repos.length} projects · SMs light on a log scale, 1 → 128</text>
+    <text x="${px}" y="140" font-size="${TYPE.label}" fill="${p.text3}">${data.totals.contributions} contributions across ${data.repos.length} projects · GPC7 is fused off</text>
+    <g font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1" fill="${p.text3}">
+      <text x="${px}" y="162">GPC</text><text x="${px + 48}" y="162">PROJECT</text><text x="${px + 216}" y="162">SMs LIT (LOG)</text><text x="${right}" y="162" text-anchor="end">CONTRIBUTIONS</text>
+    </g>
     ${gpcMap}
-    <text x="${px}" y="${H - MARGIN - 4}" font-family="${COND}" font-size="${TYPE.label}" fill="${p.text3}">Memory: ${memory}</text>
+    <text x="${px}" y="${H - MARGIN}" font-family="${COND}" font-size="${TYPE.label}" fill="${p.text3}">Memory: ${memory}</text>
   </g>
 </svg>
 `;

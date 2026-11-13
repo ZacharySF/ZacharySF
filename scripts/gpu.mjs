@@ -52,11 +52,12 @@ export function renderHero(data, { fonts = "" } = {}) {
     const sms = SM_THRESHOLDS.map((_, s) => {
       const { x, y } = smAt(gx, gy, top, s);
       const on = s < lit;
-      // Four processing blocks per SM, as faint dividers.
-      const dividers = `<path d="M${x + 5.5} ${y + 2}v6M${x + 10.5} ${y + 2}v6M${x + 15.5} ${y + 2}v6" stroke="${on ? p.bg : p.structure}" stroke-opacity="${on ? 0.3 : 1}"/>`;
-      return `<rect data-sm="${g}-${s}" data-lit="${on}" x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="${on ? p.ramp[smLevel(s) - 1] : p.well}"/>${dividers}`;
+      // SM anatomy as on a die shot: logic fill, four register-file columns (one per processing
+      // block) and an L1/shared SRAM macro. Lit SMs tint the same texture instead of hiding it.
+      const anatomy = [1, 5, 9, 13].map((dx) => `<rect x="${x + dx}" y="${y + 1}" width="3" height="8" fill="url(#rf)"/>`).join("") + `<rect x="${x + 17}" y="${y + 1}" width="3" height="8" fill="url(#sram)"/>`;
+      return `<rect x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="url(#logic)"/>${anatomy}<rect data-sm="${g}-${s}" data-lit="${on}" x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="${on ? p.ramp[smLevel(s) - 1] : "none"}"${on ? ' fill-opacity="0.7"' : ""}/>`;
     }).join("");
-    return `<g data-gpc="${g}"><rect x="${gx}" y="${gy}" width="${GPC.w}" height="${GPC.h}" fill="${p.surface}"/><rect x="${gx + 1}" y="${stripY(gy, top)}" width="${GPC.w - 2}" height="${STRIP}" fill="${p.structure}"/>${sms}</g>`;
+    return `<g data-gpc="${g}"><title>GPC${g} · ${escapeXml(repo.title)}: ${repo.contributions} contributions</title><rect x="${gx}" y="${gy}" width="${GPC.w}" height="${GPC.h}" fill="${p.bg}"/><rect x="${gx + 1}" y="${stripY(gy, top)}" width="${GPC.w - 2}" height="${STRIP}" fill="url(#logicDense)"/>${sms}</g>`;
   });
   // Unused slots are fused off, as on a harvested die: SM outlines stay visible under a hatch.
   for (let g = data.repos.length; g < GPC_SLOTS; g++) {
@@ -67,10 +68,6 @@ export function renderHero(data, { fonts = "" } = {}) {
     }).join("");
     gpcs.push(`<g data-fused="${g}"><rect x="${gx}" y="${gy}" width="${GPC.w}" height="${GPC.h}" fill="url(#fused)"/>${outlines}<rect x="${gx + 1}" y="${stripY(gy, top)}" width="${GPC.w - 2}" height="${STRIP}" fill="${p.structure}"/></g>`);
   }
-  const gpcLabels = Array.from({ length: GPC_SLOTS }, (_, g) => {
-    const { x, y, top } = gpcAt(g);
-    return `<text x="${x + 3}" y="${stripY(y, top) + 11}">GPC${g}</text>`;
-  }).join("");
 
   // --- Centre column: two L2 banks (48 tiles of 128 KB = 6 MB) around the crossbar and front end ---
   const bankH = 66;
@@ -103,15 +100,27 @@ export function renderHero(data, { fonts = "" } = {}) {
   const io = { x: die.x + 4, w: 20 };
   let iy = core.y;
   const ioBlocks = [36, 52, 44, core.h - 36 - 52 - 44 - 6].map((h) => {
-    const block = `<rect x="${io.x}" y="${iy}" width="${io.w}" height="${h}" fill="${p.surface}"/>`;
+    const block = `<rect x="${io.x}" y="${iy}" width="${io.w}" height="${h}" fill="url(#phy)"/>`;
     iy += h + 2;
     return block;
   });
 
   // --- Substrate with decoupling caps, then the die with its seal ring ---
+  // Caps sit in small banks along each edge (as on a real package), not as a continuous dashed line.
   const caps = [];
-  for (let x = ring.x + 8; x <= ring.x + ring.w - 10; x += 4) caps.push(`<rect x="${x}" y="${ring.y + 6}" width="2" height="1"/><rect x="${x}" y="${ring.y + ring.h - 7}" width="2" height="1"/>`);
-  for (let y = ring.y + 12; y <= ring.y + ring.h - 14; y += 4) caps.push(`<rect x="${ring.x + 6}" y="${y}" width="1" height="2"/><rect x="${ring.x + ring.w - 7}" y="${y}" width="1" height="2"/>`);
+  const capBank = (x, y, horizontal) => {
+    for (let k = 0; k < 6; k++) caps.push(horizontal ? `<rect x="${x + k * 5}" y="${y}" width="3" height="5"/>` : `<rect x="${x}" y="${y + k * 5}" width="5" height="3"/>`);
+  };
+  for (const fx of [0.16, 0.5, 0.84]) {
+    const x = Math.round(ring.x + fx * ring.w - 14);
+    capBank(x, ring.y + 5, true);
+    capBank(x, ring.y + ring.h - 10, true);
+  }
+  for (const fy of [0.2, 0.5, 0.8]) {
+    const y = Math.round(ring.y + fy * ring.h - 14);
+    capBank(ring.x + 5, y, false);
+    capBank(ring.x + ring.w - 10, y, false);
+  }
 
   // --- Side panel: one focal name, then the GPC map with the same log-scale SM strip the die uses ---
   const px = ring.x + ring.w + 32;
@@ -136,6 +145,11 @@ export function renderHero(data, { fonts = "" } = {}) {
   <defs>
     ${fonts ? `<style>${fonts}</style>` : ""}
     <pattern id="sram" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="2" height="2" fill="${p.surface}"/><rect width="1" height="1" fill="${p.structure}"/></pattern>
+    <pattern id="rf" width="3" height="2" patternUnits="userSpaceOnUse"><rect width="3" height="2" fill="${p.surface}"/><rect width="3" height="1" fill="${p.well}"/></pattern>
+    <pattern id="logic" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="${p.surface}"/><rect x="0" y="0" width="2" height="1" fill="${p.well}"/><rect x="3" y="1" width="1" height="2" fill="${p.structure}"/><rect x="1" y="3" width="2" height="1" fill="${p.structure}"/><rect x="4" y="4" width="2" height="1" fill="${p.well}"/><rect x="0" y="5" width="1" height="1" fill="${p.well}"/></pattern>
+    <pattern id="logicDense" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.well}"/><rect width="1" height="1" fill="${p.structure}"/><rect x="2" y="1" width="2" height="1" fill="${p.surface}"/><rect x="1" y="3" width="1" height="1" fill="${p.structure}"/></pattern>
+    <pattern id="wires" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="${p.surface}"/><rect width="3" height="1" fill="${p.structure}"/></pattern>
+    <pattern id="phy" width="20" height="4" patternUnits="userSpaceOnUse"><rect width="20" height="4" fill="${p.surface}"/><rect x="2" y="1" width="12" height="2" fill="${p.well}"/><rect x="16" y="1" width="2" height="2" fill="${p.structure}"/></pattern>
     <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern>
   </defs>
   ${panel(W, H)}
@@ -150,12 +164,8 @@ export function renderHero(data, { fonts = "" } = {}) {
     ${mcs.join("")}
     ${gpcs.join("")}
     ${bank(core.y)}${bank(core.y + core.h - bankH)}
-    <rect x="${cx}" y="${xbar.y}" width="${CENTER_W}" height="${xbar.h}" fill="${p.structure}"/>
-    <rect x="${cx + 4}" y="${xbar.y + 4}" width="${CENTER_W - 8}" height="${xbar.h - 8}" fill="${p.surface}"/>
-  </g>
-  <g font-family="${COND}" font-weight="500" font-size="${TYPE.label}" letter-spacing="0.3" fill="${p.text3}">
-    ${gpcLabels}
-    <text x="${cx + CENTER_W / 2}" y="${xbar.y + xbar.h / 2 + 4}" text-anchor="middle" fill="${p.text2}">FE</text>
+    <rect x="${cx}" y="${xbar.y}" width="${CENTER_W}" height="${xbar.h}" fill="url(#wires)"/>
+    <rect x="${cx + 6}" y="${xbar.y + 6}" width="${CENTER_W - 12}" height="${xbar.h - 12}" fill="url(#logicDense)"/>
   </g>
 
   <g font-family="${SANS}" font-weight="500">

@@ -1,0 +1,52 @@
+name: Metrics
+on:
+  schedule: [{ cron: "0 6 * * *" }]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/metrics.yml, scripts/**]
+
+permissions:
+  contents: write
+
+concurrency: { group: metrics, cancel-in-progress: false }
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.METRICS_TOKEN }}
+          user: ZacharySF
+          filename: metrics.svg
+          template: classic
+          base: header, activity, community, repositories, metadata
+          config_timezone: America/Chicago
+          config_display: large
+          plugin_languages: yes
+          plugin_languages_details: percentage
+          plugin_languages_limit: 8
+          plugin_languages_ignored: html, css, dockerfile, mdsvex
+          plugin_lines: yes
+
+  gpu:
+    # The GPU die and graphics card images: re-fetch contributions, calendar and languages, redraw, commit if changed.
+    needs: metrics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node --test scripts/cards.test.mjs
+      - run: node scripts/fetch-github.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.METRICS_TOKEN }}
+      - run: node scripts/build-assets.mjs
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets
+          git diff --cached --quiet || { git commit -m "Refresh GPU hero from GitHub data" && git push; }

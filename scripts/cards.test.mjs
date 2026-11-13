@@ -32,6 +32,19 @@ test("the card's LED matrix has one LED per day, lit with the die's blue ramp", 
   assert.ok(!/undefined|NaN/.test(svg));
 });
 
+test("white GPU contacts stay within the card's visible side face", () => {
+  const svg = renderCalendarCard(calendar);
+  const contacts = [...svg.matchAll(new RegExp(`<polygon points="([^"]+)" fill="${PALETTE.text}"/>`, "g"))];
+  assert.equal(contacts.length, 22);
+  for (const [, points] of contacts) {
+    for (const point of points.split(" ")) {
+      const [x, y] = point.split(",").map(Number);
+      const bottom = 42 + ((x - 104) / 8.66 + 18) * 5;
+      assert.ok(y < bottom && y > bottom - 12, `contact outside side face: ${point}`);
+    }
+  }
+});
+
 test("GPC slots without a repo are drawn fused off, as on a harvested die", () => {
   const svg = renderHero(gpuData);
   assert.equal((svg.match(/data-fused=/g) ?? []).length, 8 - gpuData.repos.length);

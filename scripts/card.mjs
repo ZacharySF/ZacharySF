@@ -42,10 +42,10 @@ export function renderCalendarCard(calendar, { fonts = "" } = {}) {
   const sideJ = pts(iso(0, S, THICK), iso(L, S, THICK), iso(L, S, 0), iso(0, S, 0)); // long face towards the viewer
   const sideI = pts(iso(L, 0, THICK), iso(L, S, THICK), iso(L, S, 0), iso(L, 0, 0)); // far end face
 
-  // PCIe x16 fingers on the long face, under the first third of the card.
+  // White contacts inset into the long face; both ends stay inside the shroud.
   const fingers = Array.from({ length: 22 }, (_, k) => {
     const i = 3 + k * 0.45 + (k >= 5 ? 0.4 : 0);
-    return `<polygon points="${pts(iso(i, S, 2), iso(i + 0.28, S, 2), iso(i + 0.28, S, -5), iso(i, S, -5))}" fill="${p.text}"/>`;
+    return `<polygon points="${pts(iso(i, S, 10), iso(i + 0.28, S, 10), iso(i + 0.28, S, 3), iso(i, S, 3))}" fill="${p.text}"/>`;
   }).join("");
 
   // I/O bracket: a plate standing at the near end, taller than the card is thick.

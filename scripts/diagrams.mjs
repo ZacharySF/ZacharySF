@@ -10,100 +10,128 @@ const text = (x, y, value, { size = TYPE.label, weight = 500, fill = p.text2, an
 const lines = (x, y, rows, options) => rows.map((row, i) => text(x, y + i * 16, row, options)).join("");
 const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${rx ? ` rx="${rx}"` : ""} fill="${fill}"/>`;
 
-// Orion Mesh is drawn as a layered block diagram in the manner of NVIDIA's module and software-stack
-// figures: tiles with their names inside, one container per node, rows named once in a gutter, a bus
-// where the two radios meet, and a key for the fills. Its colours are its own, a dusk palette of
-// aubergine, muted violet and one dusty-rose accent with two flat moons behind the link, so it reads
-// apart from the other figures. It stays as drawn on either page theme.
-const ORION = {
-  ground: "#17111f",
-  box: "#1f1829",
-  line: "#3b2f4a", // keylines and tile edges
-  tile: "#31273f", // third-party software
-  tileEdge: "#55466a",
-  net: "#473a5b", // network interfaces
-  deep: "#100b16", // the system image, chip bodies
-  metal: "#272031", // hardware
-  core: "#5f5075",
-  rose: "#d7a79c", // written for Orion Mesh, and what crosses the link
-  ink: "#1a1322", // text on rose
-  white: "#f3eef8",
-  soft: "#cdc3db", // 10:1 on the ground
-  dim: "#9385a6", // gutter labels, 5.4:1 on the ground
+// Orion Mesh is drawn as a plate from a hardware manual, in the page's own silver and blue and the
+// isometric projection of the graphics card further up: i runs right and down, j left and down, h up
+// (millimetres; `scale` is px per mm). Faces are flat tones lit from the upper left with a hairline on
+// every edge, each board casts one flat shadow, parts carry numbered balloons with straight leaders that
+// never cross, and the key below says what each numbered part does in the experiment.
+const isoAt = (ox, oy, scale) => (i, j, h = 0) => [Math.round((ox + (i - j) * scale * 0.866) * 10) / 10, Math.round((oy + (i + j) * scale * 0.5 - h * scale) * 10) / 10];
+const EDGE = p.bg;
+const poly = (points, fill, edge = EDGE) => `<polygon points="${points.map(([x, y]) => `${x},${y}`).join(" ")}" fill="${fill}"${edge ? ` stroke="${edge}" stroke-width="0.75" stroke-linejoin="round"` : ""}/>`;
+const ORION = { gold: p.silverLight, cavity: p.bg };
+// [top, face towards the viewer's left, face towards the right]: lightest on top, darkest on the right.
+const MATERIAL = {
+  pcb: [p.ramp[1], "#174f93", p.ramp[0]],
+  metal: [p.silverLight, p.silver, p.silverDark],
+  plastic: ["#222b3b", p.surface, p.bg],
+  ribbon: ["#eef1f5", p.silverLight, p.silver], // camera and display connectors
+  card: [p.silver, p.silverDark, p.structure],
 };
-const ORION_BITRATES = [0, 1, 2, 4, 6, 8, 10, 12, 15];
-const ORION_NODES = [
-  { name: "Drone node", board: "Raspberry Pi 4", soc: "BCM2711, 4 cores", own: ["control_pub", "video_tx"] },
-  { name: "Ground node", board: "Raspberry Pi 3", soc: "BCM2837, 4 cores", own: ["control_sub", "video_rx", "cpu_log"] },
+// A box standing on height h0: its top, the face towards the viewer's left (j side) and right (i side).
+function isoBox(at, [i0, j0, h0], [di, dj, dh], material) {
+  const [i1, j1, h1] = [i0 + di, j0 + dj, h0 + dh];
+  const [top, left, right] = MATERIAL[material];
+  return poly([at(i0, j1, h1), at(i1, j1, h1), at(i1, j1, h0), at(i0, j1, h0)], left) + poly([at(i1, j0, h1), at(i1, j1, h1), at(i1, j1, h0), at(i1, j0, h0)], right) + poly([at(i0, j0, h1), at(i1, j0, h1), at(i1, j1, h1), at(i0, j1, h1)], top);
+}
+// Socket openings: a dark cavity on the face at the board's right end (constant i) or front edge (constant j).
+const cavityI = (at, i, [j0, j1], [h0, h1]) => poly([at(i, j0, h1), at(i, j1, h1), at(i, j1, h0), at(i, j0, h0)], ORION.cavity, "");
+const cavityJ = (at, j, [i0, i1], [h0, h1]) => poly([at(i0, j, h1), at(i1, j, h1), at(i1, j, h0), at(i0, j, h0)], ORION.cavity, "");
+
+// Raspberry Pi parts in mm on the 85 x 56 board, header along the far edge, network and USB at the right end.
+const PCB = 1.6;
+const usbStack = (j) => ({ at: [69, j], size: [18, 13, 16], material: "metal", detail: (at) => cavityI(at, 87, [j + 1.5, j + 11.5], [PCB + 2, PCB + 6.5]) + cavityI(at, 87, [j + 1.5, j + 11.5], [PCB + 9, PCB + 13.5]) });
+const ethernet = (j) => ({ at: [66, j], size: [21, 16, 13.5], material: "metal", detail: (at) => cavityI(at, 87, [j + 2.5, j + 13.5], [PCB + 2.5, PCB + 10.5]) });
+const frontSocket = (i, j, [di, dj, dh]) => ({ at: [i, j], size: [di, dj, dh], material: "metal", detail: (at) => cavityJ(at, j + dj, [i + 1, i + di - 1], [PCB + 0.7, PCB + dh - 0.7]) });
+const header = {
+  at: [7, 1], size: [51, 5, 8.5], material: "plastic",
+  // 2 x 20 gold pins on the header's top.
+  detail: (at) => Array.from({ length: 40 }, (_, k) => { const [i, j] = [8.2 + Math.floor(k / 2) * 2.54, 1.8 + (k % 2) * 2.3]; return poly([at(i, j, PCB + 8.5), at(i + 1.1, j, PCB + 8.5), at(i + 1.1, j + 1.1, PCB + 8.5), at(i, j + 1.1, PCB + 8.5)], ORION.gold, ""); }).join(""),
+};
+const audioJack = { at: [50, 44], size: [7, 14, 6], material: "plastic", detail: (at) => { const [x, y] = at(53.5, 58, PCB + 3); return `<ellipse cx="${x}" cy="${y}" rx="2.6" ry="3.2" fill="${ORION.cavity}"/>`; } };
+const common = [
+  header,
+  { at: [-4, 22], size: [4, 11, 1], material: "card", base: 0 }, // microSD card, showing past the board's edge
+  { at: [2.5, 17], size: [2.5, 22, 4], material: "ribbon" }, // display connector
+  { at: [45.5, 34], size: [2.5, 15, 4], material: "ribbon" }, // camera connector
+  audioJack,
 ];
-const ORION_ROWS = ["Programs", "Software", "Mesh", "Radio", "System", "Board"];
+const PI_PARTS = {
+  4: [
+    ...common,
+    { at: [7, 10], size: [12, 10, 2], material: "metal" }, // wireless module
+    { at: [22, 25], size: [15, 15, 2.4], material: "metal" }, // SoC lid
+    { at: [42, 26], size: [12, 14, 1], material: "plastic" }, // memory
+    { at: [58, 30], size: [7, 7, 1], material: "plastic" }, // USB controller
+    ethernet(2.5), usbStack(22.5), usbStack(40),
+    frontSocket(7, 49, [9, 8.5, 3.2]), // USB-C power
+    frontSocket(22, 50, [7, 7.5, 3]), frontSocket(35.5, 50, [7, 7.5, 3]), // micro HDMI
+  ],
+  3: [
+    ...common,
+    { at: [8, 9], size: [2, 5, 1.2], material: "metal" }, // chip antenna
+    { at: [21, 24], size: [14, 14, 1.4], material: "plastic" }, // SoC
+    { at: [52, 34], size: [9, 9, 1], material: "plastic" }, // USB and Ethernet controller
+    usbStack(2), usbStack(20), ethernet(37.5),
+    frontSocket(6.5, 50, [8, 7.5, 3]), // micro USB power
+    frontSocket(24.5, 45, [15, 12.5, 6.5]), // HDMI
+  ],
+};
+// Where callouts and the radio link attach, in board mm.
+const PI_POINTS = {
+  4: { radio: [13, 15, PCB + 2], soc: [29.5, 32.5, PCB + 2.4], card: [-2.4, 30, 1] },
+  3: { radio: [9, 11.5, PCB + 1.2], soc: [28, 31, PCB + 1.4], card: [-2.4, 30, 1] },
+};
+
+
+function isoPi(at, model) {
+  const parts = [...PI_PARTS[model]].sort((a, b) => a.at[0] + a.at[1] - (b.at[0] + b.at[1])); // far parts first
+  const draw = (part) => isoBox(at, [...part.at, part.base ?? PCB], part.size, part.material) + (part.detail ? part.detail(at) : "");
+  const under = parts.filter((part) => part.base === 0).map(draw).join("");
+  const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="4" ry="2.3" fill="${p.silverLight}"/><ellipse cx="${x}" cy="${y}" rx="2" ry="1.2" fill="${p.bg}"/>`; }).join("");
+  const leds = [[p.ramp[3], 8], [p.accent, 11.5]].map(([fill, j]) => { const [x, y] = at(1.4, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="1.8" ry="1.1" fill="${fill}"/>`; }).join("");
+  // One flat shadow on the ground, cast down and to the right of the board's outline.
+  const shadow = `<polygon points="${[[7, 7], [94, 7], [94, 63], [7, 63]].map(([i, j]) => at(i, j, 0).join(",")).join(" ")}" fill="${p.bg}" fill-opacity="0.6"/>`;
+  return shadow + under + isoBox(at, [0, 0, 0], [85, 56, PCB], "pcb") + holes + leds + parts.filter((part) => part.base !== 0).map(draw).join("");
+}
 
 /**
- * Orion Mesh, full width: each node's stack from its benchmark programs down to the board, the one
- * Wi-Fi channel both share, the two streams that cross it, the fields of a control message and the
- * video bitrates tested. Names are the repository's own (orion_bench, README).
+ * Orion Mesh, full width. Top: both boards with numbered parts and the radio link between them.
+ * Bottom: the key, one column per node and one for the link, saying what each numbered part does.
+ * Facts are from the repository's README and orion_bench.
  */
 export function orionTestbed(w, h) {
-  const o = ORION;
-  const KIND = {
-    own: { fill: o.rose, ink: o.ink },
-    theirs: { fill: o.tile, edge: o.tileEdge, ink: o.soft },
-    net: { fill: o.net, ink: o.white },
-    system: { fill: o.deep, edge: o.line, ink: o.soft },
-    metal: { fill: o.metal, edge: o.line, ink: o.soft },
+  const scale = 1.9;
+  const drone = isoAt(150, 108, scale);
+  const ground = isoAt(w - 196, 108, scale);
+  const label = (x, y, value, options = {}) => text(x, y, value, { fill: p.text2, ...options });
+  const balloon = (x, y, n) => `<circle cx="${x}" cy="${y}" r="9" fill="${p.text}"/>${text(x, y + 4, String(n), { weight: 600, fill: p.bg, anchor: "middle" })}`;
+  // A numbered balloon beside a part, joined to it by one straight leader that stops at the balloon's rim.
+  const callout = (at, point, [bx, by], n) => {
+    const [px, py] = at(...point);
+    const d = Math.hypot(bx - px, by - py);
+    const [ex, ey] = [bx - ((bx - px) * 9) / d, by - ((by - py) * 9) / d];
+    return `<path d="M${px} ${py} L${Math.round(ex * 10) / 10} ${Math.round(ey * 10) / 10}" fill="none" stroke="${p.text3}"/><circle cx="${px}" cy="${py}" r="2" fill="${p.text}"/>${balloon(bx, by, n)}`;
   };
-  const tile = (x, y, width, name, kind, height = 28) => {
-    const { fill, edge, ink } = KIND[kind];
-    return `${rect(x, y, width, height, fill, 2)}${edge ? `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="1.5" fill="none" stroke="${edge}"/>` : ""}${text(x + width / 2, y + height / 2 + 4, name, { fill: ink, anchor: "middle" })}`;
-  };
-  // Tiles of the given widths (or equal widths) across `span`, 8 px apart.
-  const row = (x, y, span, names, kind, widths) => {
-    const each = widths ?? names.map(() => (span - 8 * (names.length - 1)) / names.length);
-    let at = x;
-    return names.map((name, i) => { const out = tile(Math.round(at), y, Math.round(each[i]), name, kind); at += each[i] + 8; return out; }).join("");
-  };
-  const box = { w: 272, pad: 12, y: 24, h: 288 };
-  const rowY = (i) => box.y + 40 + i * 36;
-  const node = (x, { name, board, soc, own }) => {
-    const [ix, span] = [x + box.pad, box.w - 2 * box.pad];
-    const chip = { x: ix, y: rowY(5) + 4, size: 52 };
-    const cores = [0, 1, 2, 3].map((k) => rect(chip.x + 8 + (k % 2) * 20, chip.y + 8 + Math.floor(k / 2) * 20, 16, 16, o.core)).join("");
-    return `${rect(x, box.y, box.w, box.h, o.box, 4)}<rect x="${x + 0.5}" y="${box.y + 0.5}" width="${box.w - 1}" height="${box.h - 1}" rx="3.5" fill="none" stroke="${o.line}"/>
-    ${text(ix, box.y + 26, name, { size: TYPE.body, weight: 600, fill: o.white })}${text(x + box.w - box.pad, box.y + 26, board, { fill: o.dim, anchor: "end" })}
-    ${row(ix, rowY(0), span, own, "own")}
-    ${row(ix, rowY(1), span, ["ROS 2", "CycloneDDS", "ffmpeg", "Chrony"], "theirs", [42, 78, 52, 52])}
-    ${tile(ix, rowY(2), span, "bat0, BATMAN-adv", "net")}
-    ${tile(ix, rowY(3), span, "wlan0, ad-hoc Wi-Fi", "net")}
-    ${tile(ix, rowY(4), span, "NixOS image from one flake", "system")}
-    ${rect(chip.x, chip.y, chip.size, chip.size, o.deep, 2)}<rect x="${chip.x + 0.5}" y="${chip.y + 0.5}" width="${chip.size - 1}" height="${chip.size - 1}" rx="1.5" fill="none" stroke="${o.line}"/>${cores}
-    ${tile(ix + 60, chip.y, span - 60, soc, "metal", 24)}
-    ${row(ix + 60, chip.y + 28, span - 60, ["Wi-Fi", "microSD", "40-pin"], "metal").replaceAll('height="28"', 'height="24"').replaceAll('height="27"', 'height="23"')}`;
-  };
-  const [lx, rx] = [108, w - 24 - box.w];
-  const [gapL, gapR] = [lx + box.w, rx];
-  const mid = (gapL + gapR) / 2;
-  const gutter = ORION_ROWS.map((name, i) => text(lx - 16, rowY(i) + (i === 5 ? 34 : 18), name, { fill: o.dim, caps: true, anchor: "end" })).join("");
-  // A stream from the drone's programs to the ground's: a hairline with an arrowhead, named above it.
-  const stream = (y, name) => `${rect(gapL + 6, y, gapR - gapL - 18, 1, o.rose)}<path d="M${gapR - 6} ${y + 0.5} l-8 -4 v8 z" fill="${o.rose}"/>${text(mid, y - 7, name, { fill: o.soft, anchor: "middle" })}`;
+  const [ax, ay] = drone(...PI_POINTS[4].radio);
+  const [bx, by] = ground(...PI_POINTS[3].radio);
+  const mid = (ax + bx) / 2;
+  const apex = Math.min(ay, by) - 150;
 
-  const by = 376;
-  const fields = [["header.stamp", "send time", 112], ["header.frame_id", "sequence number", 128], ["twist", "synthetic command", 58]];
-  let fx = 24;
-  const message = fields.map(([name, meaning, width]) => { const out = tile(fx, by, width, name, "theirs") + text(fx, by + 46, meaning, { fill: o.dim }); fx += width + 8; return out; }).join("");
-  const key = [["Written for Orion Mesh", "own"], ["Third-party software", "theirs"], ["Hardware", "metal"]];
-  let kx = 24;
-  const legend = key.map(([name, kind]) => { const { fill, edge } = KIND[kind]; const out = `${rect(kx, h - 34, 12, 12, fill, 2)}${edge ? `<rect x="${kx + 0.5}" y="${h - 33.5}" width="11" height="11" rx="1.5" fill="none" stroke="${edge}"/>` : ""}${text(kx + 18, h - 24, name, { fill: o.dim })}`; kx += 18 + name.length * 6.3 + 20; return out; }).join("");
+  const plate = `${fixed(isoPi(drone, 4) + isoPi(ground, 3))}
+  <path d="M${ax} ${ay} Q${mid} ${apex} ${bx} ${by}" fill="none" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 4"/>
+  ${balloon(mid, (ay + by) / 2 - 75, 4)}
+  ${callout(drone, PI_POINTS[4].radio, [88, 70], 1)}${callout(drone, PI_POINTS[4].soc, [118, 252], 2)}${callout(drone, PI_POINTS[4].card, [40, 156], 3)}
+  ${callout(ground, PI_POINTS[3].radio, [644, 70], 1)}${callout(ground, PI_POINTS[3].soc, [572, 252], 2)}${callout(ground, PI_POINTS[3].card, [496, 156], 3)}`;
 
-  return fixed(`${rect(0, 0, w, h, o.ground)}
-  <circle cx="${mid}" cy="150" r="128" fill="${o.rose}" fill-opacity="0.07"/><circle cx="${mid + 30}" cy="266" r="12" fill="${o.deep}"/>
-  ${gutter}${node(lx, ORION_NODES[0])}${node(rx, ORION_NODES[1])}
-  ${stream(rowY(0) + 20, "control, 50 Hz")}${stream(rowY(1) + 20, "video, 0 to 15 Mbps")}
-  ${tile(gapL, rowY(3), gapR - gapL, "one channel", "own")}
-  ${rect(24, 336, w - 48, 1, o.line)}
-  ${text(24, by - 12, "One control message", { fill: o.dim, caps: true })}${message}
-  ${text(rx, by - 12, "Video load per trial, Mbps", { fill: o.dim, caps: true })}${row(rx, by, box.w, ORION_BITRATES.map(String), "theirs", ORION_BITRATES.map(() => 24))}
-  ${text(rx, by + 46, "Every trial also records gaps and CPU use.", { fill: o.dim })}
-  ${legend}${text(w - 24, h - 24, "Latency = ground receive time - send time", { fill: o.soft, anchor: "end" })}`);
+  const ky = 296;
+  const column = (x, title, sub, rows) =>
+    `${text(x, ky + 24, title, { size: TYPE.body, weight: 600, fill: p.text })}${text(x, ky + 42, sub, { fill: p.text3, caps: true })}${rows.map(([n, value], i) => `${n ? balloon(x + 9, ky + 64 + i * 24, n) : ""}${label(x + 28, ky + 68 + i * 24, value)}`).join("")}`;
+  const key = `${rect(24, ky, w - 48, 1, p.structure)}
+  ${column(24, "Drone node", "Raspberry Pi 4", [[1, "Radio: wlan0, joined to bat0"], [2, "SoC: sends control, encodes video"], [3, "microSD: NixOS image from the flake"]])}
+  ${column(290, "Link", "Ad-hoc Wi-Fi, BATMAN-adv", [[4, "Control: TwistStamped at 50 Hz"], [0, "Video: H.264 at 0 to 15 Mbps"], [0, "Clocks: kept in step by Chrony"]])}
+  ${column(556, "Ground node", "Raspberry Pi 3", [[1, "Radio: wlan0, joined to bat0"], [2, "SoC: times each message, logs CPU"], [3, "microSD: image from the same flake"]])}`;
+
+  return `${plate}${key}`;
 }
 
 const NIXOS_SYSTEM = ["nix", "boot", "locale", "networking", "audio", "desktop", "users", "packages"];

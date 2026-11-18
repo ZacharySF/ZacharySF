@@ -15,20 +15,25 @@ const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}"
 const isoAt = (ox, oy, scale) => (i, j, h = 0) => [Math.round((ox + (i - j) * scale * 0.866) * 10) / 10, Math.round((oy + (i + j) * scale * 0.5 - h * scale) * 10) / 10];
 const poly = (points, fill) => `<polygon points="${points.map(([x, y]) => `${x},${y}`).join(" ")}" fill="${fill}"/>`;
 // Orion Mesh keeps its own colours so it reads apart from the blue-on-navy figures: the green
-// boards, black header and bright sockets of a real Raspberry Pi, with the link in raspberry red.
-// The whole figure is a fixed dark panel, like a screenshot, on either page theme.
+// boards, black header and bright sockets of a real Raspberry Pi, the control stream in raspberry red
+// and the video stream in amber. The whole figure is a fixed dark panel, like a screenshot, on either page theme.
 const ORION = {
   panel: "#0e1512",
+  rule: "#243029",
   text: "#eef3ee",
   text2: "#bcc8bf",
   text3: "#84968a", // 5.6:1 on the panel
-  link: "#f0527f",
-  hole: "#c9a24a",
+  control: "#f0527f",
+  video: "#e0a84b",
+  gold: "#c9a24a",
+  cavity: "#0a0c0d",
 };
 const MATERIAL = {
   pcb: ["#2f8156", "#1e5a3c", "#143f2a"],
   metal: ["#d9dde2", "#9ba3ad", "#5a626d"],
   plastic: ["#262a2f", "#16191c", "#0d0f11"],
+  ribbon: ["#e6e1d3", "#b8b3a4", "#8f8a7c"], // camera and display connectors
+  card: ["#3a4150", "#2a2f3a", "#1c2028"],
 };
 // A box standing on height h0: its top, the face towards the viewer's left (j side) and right (i side).
 function isoBox(at, [i0, j0, h0], [di, dj, dh], material) {
@@ -36,63 +41,134 @@ function isoBox(at, [i0, j0, h0], [di, dj, dh], material) {
   const [top, left, right] = MATERIAL[material];
   return poly([at(i0, j1, h1), at(i1, j1, h1), at(i1, j1, h0), at(i0, j1, h0)], left) + poly([at(i1, j0, h1), at(i1, j1, h1), at(i1, j1, h0), at(i1, j0, h0)], right) + poly([at(i0, j0, h1), at(i1, j0, h1), at(i1, j1, h1), at(i0, j1, h1)], top);
 }
+// Socket openings: a dark cavity on the face at the board's right end (constant i) or front edge (constant j).
+const cavityI = (at, i, [j0, j1], [h0, h1]) => poly([at(i, j0, h1), at(i, j1, h1), at(i, j1, h0), at(i, j0, h0)], ORION.cavity);
+const cavityJ = (at, j, [i0, i1], [h0, h1]) => poly([at(i0, j, h1), at(i1, j, h1), at(i1, j, h0), at(i0, j, h0)], ORION.cavity);
 
 // Raspberry Pi parts in mm on the 85 x 56 board, header along the far edge, network and USB at the right end.
 const PCB = 1.6;
+const usbStack = (j) => ({ at: [69, j], size: [18, 13, 16], material: "metal", detail: (at) => cavityI(at, 87, [j + 1.5, j + 11.5], [PCB + 2, PCB + 6.5]) + cavityI(at, 87, [j + 1.5, j + 11.5], [PCB + 9, PCB + 13.5]) });
+const ethernet = (j) => ({ at: [66, j], size: [21, 16, 13.5], material: "metal", detail: (at) => cavityI(at, 87, [j + 2.5, j + 13.5], [PCB + 2.5, PCB + 10.5]) });
+const frontSocket = (i, j, [di, dj, dh]) => ({ at: [i, j], size: [di, dj, dh], material: "metal", detail: (at) => cavityJ(at, j + dj, [i + 1, i + di - 1], [PCB + 0.7, PCB + dh - 0.7]) });
+const header = {
+  at: [7, 1], size: [51, 5, 8.5], material: "plastic",
+  // 2 x 20 gold pins on the header's top.
+  detail: (at) => Array.from({ length: 40 }, (_, k) => { const [i, j] = [8.2 + Math.floor(k / 2) * 2.54, 1.8 + (k % 2) * 2.3]; return poly([at(i, j, PCB + 8.5), at(i + 1.1, j, PCB + 8.5), at(i + 1.1, j + 1.1, PCB + 8.5), at(i, j + 1.1, PCB + 8.5)], ORION.gold); }).join(""),
+};
+const audioJack = { at: [50, 44], size: [7, 14, 6], material: "plastic", detail: (at) => { const [x, y] = at(53.5, 58, PCB + 3); return `<ellipse cx="${x}" cy="${y}" rx="2.6" ry="3.2" fill="${ORION.cavity}"/>`; } };
+const common = [
+  header,
+  { at: [-2.5, 22], size: [2.5, 11, 1], material: "card", base: 0 }, // microSD card, showing past the board's edge
+  { at: [2.5, 17], size: [2.5, 22, 4], material: "ribbon" }, // display connector
+  { at: [45.5, 34], size: [2.5, 15, 4], material: "ribbon" }, // camera connector
+  audioJack,
+];
 const PI_PARTS = {
   4: [
-    [[7, 1], [51, 5, 8.5], "plastic"], // 40-pin header
-    [[7, 10], [12, 10, 2], "metal"], // wireless module
-    [[22, 25], [15, 15, 2.4], "metal"], // SoC lid
-    [[42, 26], [12, 14, 1], "plastic"], // memory
-    [[66, 2.5], [21, 16, 13.5], "metal"], // Ethernet
-    [[69, 22.5], [18, 13, 16], "metal"], // USB 3
-    [[69, 40], [18, 13, 16], "metal"], // USB 2
-    [[7, 49], [9, 8.5, 3.2], "metal"], // USB-C power
-    [[22, 50], [7, 7.5, 3], "metal"], // micro HDMI
-    [[35.5, 50], [7, 7.5, 3], "metal"], // micro HDMI
-    [[50, 44], [7, 14, 6], "plastic"], // audio jack
+    ...common,
+    { at: [7, 10], size: [12, 10, 2], material: "metal" }, // wireless module
+    { at: [22, 25], size: [15, 15, 2.4], material: "metal" }, // SoC lid
+    { at: [42, 26], size: [12, 14, 1], material: "plastic" }, // memory
+    { at: [58, 30], size: [7, 7, 1], material: "plastic" }, // USB controller
+    ethernet(2.5), usbStack(22.5), usbStack(40),
+    frontSocket(7, 49, [9, 8.5, 3.2]), // USB-C power
+    frontSocket(22, 50, [7, 7.5, 3]), frontSocket(35.5, 50, [7, 7.5, 3]), // micro HDMI
   ],
   3: [
-    [[7, 1], [51, 5, 8.5], "plastic"],
-    [[3, 9], [2, 5, 1.2], "metal"], // chip antenna
-    [[21, 24], [14, 14, 1.4], "plastic"], // SoC
-    [[52, 34], [9, 9, 1], "plastic"], // USB and Ethernet controller
-    [[69, 2], [18, 13, 16], "metal"], // USB
-    [[69, 20], [18, 13, 16], "metal"], // USB
-    [[66, 37.5], [21, 16, 13.5], "metal"], // Ethernet
-    [[6.5, 50], [8, 7.5, 3], "metal"], // micro USB power
-    [[24.5, 45], [15, 12.5, 6.5], "metal"], // HDMI
-    [[50, 44], [7, 14, 6], "plastic"],
+    ...common,
+    { at: [8, 9], size: [2, 5, 1.2], material: "metal" }, // chip antenna
+    { at: [21, 24], size: [14, 14, 1.4], material: "plastic" }, // SoC
+    { at: [52, 34], size: [9, 9, 1], material: "plastic" }, // USB and Ethernet controller
+    usbStack(2), usbStack(20), ethernet(37.5),
+    frontSocket(6.5, 50, [8, 7.5, 3]), // micro USB power
+    frontSocket(24.5, 45, [15, 12.5, 6.5]), // HDMI
   ],
 };
-const PI_RADIO = { 4: [13, 15, PCB + 2], 3: [4, 11.5, PCB + 1.2] };
+// Where callouts and the radio link attach, in board mm.
+const PI_POINTS = {
+  4: { radio: [13, 15, PCB + 2], soc: [29.5, 32.5, PCB + 2.4], card: [-1.2, 27.5, 1] },
+  3: { radio: [9, 11.5, PCB + 1.2], soc: [28, 31, PCB + 1.4], card: [-1.2, 27.5, 1] },
+};
 
 function isoPi(at, model) {
-  const parts = [...PI_PARTS[model]].sort((a, b) => a[0][0] + a[0][1] - (b[0][0] + b[0][1])); // far parts first
-  const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="2" fill="${ORION.hole}"/>`; }).join("");
-  return isoBox(at, [0, 0, 0], [85, 56, PCB], "pcb") + holes + parts.map(([[i, j], size, material]) => isoBox(at, [i, j, PCB], size, material)).join("");
+  const parts = [...PI_PARTS[model]].sort((a, b) => a.at[0] + a.at[1] - (b.at[0] + b.at[1])); // far parts first
+  const draw = (part) => isoBox(at, [...part.at, part.base ?? PCB], part.size, part.material) + (part.detail ? part.detail(at) : "");
+  const under = parts.filter((part) => part.base === 0).map(draw).join("");
+  const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="4" ry="2.3" fill="${ORION.gold}"/><ellipse cx="${x}" cy="${y}" rx="2" ry="1.2" fill="${ORION.panel}"/>`; }).join("");
+  const leds = [["#e5484d", 8], ["#3fb950", 11.5]].map(([fill, j]) => { const [x, y] = at(1.4, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="1.8" ry="1.1" fill="${fill}"/>`; }).join("");
+  return under + isoBox(at, [0, 0, 0], [85, 56, PCB], "pcb") + holes + leds + parts.filter((part) => part.base !== 0).map(draw).join("");
 }
 
+export const ORION_BITRATES = [0, 1, 2, 4, 6, 8, 10, 12, 15];
+
 /**
- * Orion Mesh, full width: the two boards in the page's isometric projection, the radio link arcing
- * between their wireless parts with what it carries, and each node's job.
+ * Orion Mesh, full width. Top: both boards in the page's isometric projection with their parts called
+ * out, and the radio link carrying the two streams. Bottom: what a control message carries, and the
+ * video bitrates tested, on a linear ruler. Facts are from the repository's README and control_sub.py.
  */
-export function orionBoards(w, h) {
+export function orionTestbed(w, h) {
   const scale = 1.9;
-  const drone = isoAt(116, 100, scale);
-  const ground = isoAt(w - 168, 100, scale);
-  const [ax, ay] = drone(...PI_RADIO[4]);
-  const [bx, by] = ground(...PI_RADIO[3]);
+  const drone = isoAt(150, 120, scale);
+  const ground = isoAt(w - 196, 120, scale);
+  const o = ORION;
+  const label = (x, y, value, options = {}) => text(x, y, value, { fill: o.text2, ...options });
+  const leader = (d) => `<path d="${d}" fill="none" stroke="${o.text3}"/>`;
+  // A callout: a dot on the part, a leader straight up or down to the label's row, the label beside it.
+  const callout = (at, point, y, value, side = 1) => {
+    const [px, py] = at(...point).map(Math.round);
+    const up = y < py;
+    return `<circle cx="${px}" cy="${py}" r="2" fill="${o.text}"/>${leader(`M${px + 0.5} ${py} V${up ? y + 4 : y - 10} h${side * 6}`)}${label(px + side * 10, y, value, { anchor: side > 0 ? "start" : "end" })}`;
+  };
+  const [ax, ay] = drone(...PI_POINTS[4].radio);
+  const [bx, by] = ground(...PI_POINTS[3].radio);
   const mid = (ax + bx) / 2;
-  const jobs = (x, name, model, rows) => text(x, 276, name, { size: TYPE.body, weight: 600, fill: ORION.text }) + text(x, 294, `Raspberry Pi ${model}`, { fill: ORION.text3, caps: true }) + lines(x, 316, rows, { fill: ORION.text2 });
-  return fixed(`${rect(0, 0, w, h, ORION.panel)}${isoPi(drone, 4)}${isoPi(ground, 3)}
-  <path d="M${ax} ${ay} Q${mid} ${Math.min(ay, by) - 132} ${bx} ${by}" fill="none" stroke="${ORION.link}" stroke-width="2" stroke-dasharray="6 4"/>
-  <circle cx="${ax}" cy="${ay}" r="4" fill="${ORION.link}"/><circle cx="${bx}" cy="${by}" r="4" fill="${ORION.link}"/>
-  ${text(mid, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: ORION.text, anchor: "middle" })}
-  ${text(mid, 124, "Control messages at 50 Hz", { fill: ORION.text2, anchor: "middle" })}${text(mid, 142, "H.264 video at 0 to 15 Mbps", { fill: ORION.text2, anchor: "middle" })}${text(mid, 168, "one shared channel", { fill: ORION.text3, caps: true, anchor: "middle" })}
-  ${jobs(24, "Drone node", 4, ["Publishes control and streams video", "Serves the reference clock"])}
-  ${jobs(w - 24 - 208, "Ground node", 3, ["Times every control message", "Counts sequence gaps, logs CPU use"])}`);
+  const arc = (lift) => `M${ax} ${ay} Q${mid} ${Math.min(ay, by) - lift} ${bx} ${by}`;
+  const key = (y, swatch, value) => `${swatch}${label(mid - 24, y, value)}`;
+
+  const top = `${isoPi(drone, 4)}${isoPi(ground, 3)}
+  <path d="${arc(150)}" fill="none" stroke="${o.video}" stroke-width="6" stroke-opacity="0.45"/>
+  <path d="${arc(150)}" fill="none" stroke="${o.control}" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <circle cx="${ax}" cy="${ay}" r="4" fill="${o.control}"/><circle cx="${bx}" cy="${by}" r="4" fill="${o.control}"/>
+  ${text(24, 36, "Drone node", { size: TYPE.body, weight: 600, fill: o.text })}${text(24, 54, "Raspberry Pi 4", { fill: o.text3, caps: true })}
+  ${text(w - 24, 36, "Ground node", { size: TYPE.body, weight: 600, fill: o.text, anchor: "end" })}${text(w - 24, 54, "Raspberry Pi 3", { fill: o.text3, caps: true, anchor: "end" })}
+  ${text(mid, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: o.text, anchor: "middle" })}
+  ${key(170, `<path d="M${mid - 58} 166 h24" stroke="${o.control}" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>`, "Control, 50 Hz")}
+  ${key(192, `<path d="M${mid - 58} 188 h24" stroke="${o.video}" stroke-width="6" stroke-opacity="0.45"/>`, "H.264 video, 0 to 15 Mbps")}
+  ${key(214, `<path d="M${mid - 58} 210.5 h24" stroke="${o.text3}"/>`, "Chrony syncs the clocks")}
+  ${callout(drone, PI_POINTS[4].radio, 98, "Radio: wlan0 in bat0", -1)}
+  ${callout(drone, PI_POINTS[4].soc, 286, "SoC: ROS 2 publisher, video encoder")}
+  ${callout(drone, PI_POINTS[4].card, 306, "microSD: NixOS image")}
+  ${callout(ground, PI_POINTS[3].radio, 98, "Radio: wlan0 in bat0")}
+  ${callout(ground, PI_POINTS[3].soc, 286, "SoC: subscriber, latency log")}
+  ${callout(ground, PI_POINTS[3].card, 306, "microSD: NixOS image")}`;
+
+  // What one control message carries (geometry_msgs/TwistStamped), drawn as a field map.
+  const fy = 372;
+  const fields = [["header.stamp", "send time", 132], ["header.frame_id", "sequence number", 132], ["twist", "synthetic command", 100]];
+  let fx = 24;
+  const message = fields
+    .map(([name, meaning, width]) => {
+      const cell = `<rect x="${fx + 0.5}" y="${fy + 0.5}" width="${width - 1}" height="27" fill="none" stroke="${o.text3}"/>${label(fx + width / 2, fy + 18, name, { fill: o.text, anchor: "middle" })}${label(fx + width / 2, fy + 46, meaning, { fill: o.text3, anchor: "middle" })}`;
+      fx += width - 1;
+      return cell;
+    })
+    .join("");
+
+  // Tested encoder targets on a linear ruler: a tall tick and its number at each one, a short tick per Mbps.
+  const ruler = { x0: 436, x1: w - 32, y: fy + 14 };
+  const top15 = Math.max(...ORION_BITRATES);
+  const xOf = (rate) => Math.round((ruler.x0 + ((ruler.x1 - ruler.x0) * rate) / top15) * 10) / 10;
+  const minor = Array.from({ length: top15 + 1 }, (_, r) => `<rect x="${xOf(r)}" y="${ruler.y - 4}" width="1" height="4" fill="${o.text3}"/>`).join("");
+  const major = ORION_BITRATES.map((rate) => `<rect data-rate="${rate}" x="${xOf(rate)}" y="${ruler.y - 14}" width="2" height="14" fill="${o.video}"/>${label(xOf(rate) + 1, ruler.y + 20, String(rate), { anchor: "middle" })}`).join("");
+
+  const bottom = `${rect(24, 328, w - 48, 1, o.rule)}
+  ${text(24, 356, "One control message", { fill: o.text3, caps: true })}${message}
+  ${label(24, fy + 76, "Latency is the ground's receive time minus the send time.")}
+  ${text(ruler.x0, 356, "Video load per trial, Mbps", { fill: o.text3, caps: true })}
+  <g shape-rendering="crispEdges">${rect(ruler.x0, ruler.y, ruler.x1 - ruler.x0 + 2, 1, o.text3)}${minor}${major}</g>
+  ${label(ruler.x0, fy + 76, "Each trial also records sequence gaps and CPU use.")}`;
+
+  return fixed(`${rect(0, 0, w, h, o.panel)}${top}${bottom}`);
 }
 
 const NIXOS_SYSTEM = ["nix", "boot", "locale", "networking", "audio", "desktop", "users", "packages"];
@@ -130,4 +206,4 @@ export function nixosFlake(w, h) {
   ${text(drive, outB + 44, "External drive", { size: TYPE.body, weight: 600, fill: p.text })}${text(drive, outB + 60, "Its own root, boot and swap", { fill: p.text3 })}`;
 }
 
-export const DIAGRAMS = { orionBoards, nixosFlake };
+export const DIAGRAMS = { orionTestbed, nixosFlake };

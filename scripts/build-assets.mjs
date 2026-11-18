@@ -1,19 +1,16 @@
 // Renders every generated image on the profile with the shared tokens in style.mjs:
-// the GPU floorplan hero, the compact projects-by-layer panel and the graphics-card contribution calendar.
-// Usage: node scripts/build-assets.mjs   (reads assets/gpu-data.json, writes assets/*.svg)
+// the GPU floorplan hero, one block of pictures per project and the graphics-card contribution calendar.
+// Each image is written twice, for GitHub's dark and light pages (see retheme in style.mjs).
+// Usage: node scripts/build-assets.mjs   (reads assets/gpu-data.json and assets/shots, writes assets/**/*.svg)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderCalendarCard } from "./card.mjs";
+import { DIAGRAMS } from "./diagrams.mjs";
 import { renderHero } from "./gpu.mjs";
 import { layers, stack } from "./projects.mjs";
-import { COND, fontCss, MARGIN, PALETTE as p, README_W, SANS, TYPE } from "./style.mjs";
+import { COND, fixed, fontCss, MARGIN, PALETTE as p, RADIUS, README_W, retheme, SANS, TYPE } from "./style.mjs";
 import { escapeXml } from "./svg.mjs";
-
-/** A project slot in the panel: 275 px wide, two 12 px lines of summary. */
-export const SLOT = { width: 275, charsPerLine: 43, maxLines: 2 };
-const ROW_H = 76;
-const TOP = 52;
 
 /** Greedy word wrap to at most `width` characters per line. */
 export function wrap(text, width) {
@@ -31,41 +28,83 @@ export function wrap(text, width) {
   return lines;
 }
 
-/** All projects in one panel: one row per layer (hardware first), two projects per row. */
-export function renderProjects(layerList, { fonts = "" } = {}) {
+/** A project block: name, GPC number and role, a two-line summary, then a lead picture with two thumbnails, or one wide picture. */
+export const BLOCK = {
+  top: 92, // first picture row, below the header
+  lead: { w: 532, h: 332 },
+  thumb: { w: 250, h: 148 },
+  gap: 16,
+  caption: 16, // baseline below a picture
+  bottom: 32,
+  summaryChars: 112, // one 14 px line across the column
+  summaryLines: 2,
+  outputLabel: 40, // "OUT 0" and the space after it
+  captionCharWidth: 6.4, // 12 px Plex Sans, average advance
+};
+
+/** A layer heading above its projects: the depth gauge (hardware at the bottom), the layer number and its name. */
+export function renderLayerStrip(layer, index, count, { fonts = "" } = {}) {
   const W = README_W;
-  const H = TOP + layerList.length * ROW_H + 4;
-  const slotX = [256, 256 + SLOT.width + 16];
-  const rows = layerList
-    .map((layer, i) => {
-      const y = TOP + i * ROW_H;
-      const gauge = layerList
-        .map((_, depth) => `<rect data-row="${i}" data-depth="${depth}" data-active="${depth === i}" x="${MARGIN}" y="${y + 2 + (layerList.length - 1 - depth) * 5}" width="${32 - depth * 6}" height="3" fill="${depth === i ? p.accent : p.structure}"/>`)
-        .join("");
-      const slots = layer.projects
-        .map((project, k) => {
-          const x = slotX[k];
-          const summary = wrap(project.short, SLOT.charsPerLine)
-            .map((line, l) => `<tspan x="${x}" dy="${l ? 16 : 0}">${escapeXml(line)}</tspan>`)
-            .join("");
-          return `<g data-project="${escapeXml(project.slug)}"><text x="${x}" y="${y + 14}" font-weight="600" font-size="${TYPE.body}" fill="${p.text}">${escapeXml(project.title)}</text><text x="${x + SLOT.width}" y="${y + 14}" text-anchor="end" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="0.3" fill="${p.accent}">${escapeXml(project.role.toUpperCase())}</text><text y="${y + 34}" font-size="${TYPE.label}" fill="${p.text2}">${summary}</text></g>`;
-        })
-        .join("");
-      const rule = i < layerList.length - 1 ? `<rect x="${MARGIN}" y="${y + ROW_H - 12}" width="${W - 2 * MARGIN}" height="1" fill="${p.structure}"/>` : "";
-      return `<g shape-rendering="crispEdges">${gauge}${rule}</g>
-    <text x="64" y="${y + 14}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1" fill="${p.text3}">LAYER ${i + 1} · ${escapeXml(layer.level.toUpperCase())}</text>
-    <text x="${MARGIN}" y="${y + 38}" font-weight="600" font-size="${TYPE.body}" fill="${p.text2}">${escapeXml(layer.title)}</text>
-    ${slots}`;
-    })
-    .join("\n    ");
-  const names = layerList.flatMap((l) => l.projects.map((pr) => pr.title)).join(", ");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">
-  <title id="t">Projects by layer</title>
-  <desc id="d">${escapeXml(names)}</desc>
+  const gauge = Array.from({ length: count }, (_, depth) => `<rect data-depth="${depth}" data-active="${depth === index}" x="${MARGIN}" y="${18 + (count - 1 - depth) * 5}" width="${32 - depth * 6}" height="3" fill="${depth === index ? p.accent : p.structure}"/>`).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="56" viewBox="0 0 ${W} 56" role="img" aria-labelledby="t">
+  <title id="t">${escapeXml(`Layer ${index + 1} of ${count}, ${layer.level}: ${layer.title}`)}</title>
   ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
   <g font-family="${SANS}" font-weight="500">
-    <text x="${MARGIN}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">PROJECTS BY LAYER</text>
-    ${rows}
+    <g shape-rendering="crispEdges"><rect x="${MARGIN}" y="0" width="${W - 2 * MARGIN}" height="1" fill="${p.structure}"/>${gauge}</g>
+    <text x="64" y="32" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1" fill="${p.text3}">LAYER ${index + 1} · ${escapeXml(layer.level.toUpperCase())}</text>
+    <text x="${W - MARGIN}" y="32" text-anchor="end" font-weight="600" font-size="${TYPE.body}" fill="${p.text2}">${escapeXml(layer.title)}</text>
+  </g>
+</svg>
+`;
+}
+
+/** Where each of a project's pictures goes, in order: [lead, upper thumbnail, lower thumbnail] or [wide]. */
+export function slotsFor(project) {
+  const { top, lead, thumb, gap } = BLOCK;
+  if (project.shots.length === 1) return [{ x: MARGIN, y: top, w: README_W - 2 * MARGIN, h: project.shots[0].height }];
+  if (project.shots.length !== 3) throw new Error(`${project.slug}: a project shows one picture or three, not ${project.shots.length}`);
+  const x = MARGIN + lead.w + gap;
+  return [
+    { x: MARGIN, y: top, ...lead },
+    { x, y: top, ...thumb },
+    { x, y: top + lead.h - thumb.h, ...thumb },
+  ];
+}
+
+/**
+ * One project. `gpc` is its cluster number on the hero die (omitted for a project that is not on the die);
+ * `images` maps a shot's file name to a data URI (omitted in tests: the frame stays empty).
+ * Pictures are numbered like the outputs of the graphics card further up the page.
+ */
+export function renderProject(project, { gpc, images = {}, fonts = "" } = {}) {
+  const W = README_W;
+  const slots = slotsFor(project);
+  const H = Math.ceil((Math.max(...slots.map((s) => s.y + s.h)) + BLOCK.caption + BLOCK.bottom) / 8) * 8;
+  const right = W - MARGIN;
+  const designator = `font-family="${COND}" font-size="${TYPE.label}" letter-spacing="0.3" fill="${p.text3}"`;
+  const badge = gpc === undefined ? "" : `<tspan ${designator}>GPC${gpc}</tspan>`;
+  const summary = wrap(project.short, BLOCK.summaryChars)
+    .map((line, i) => `<tspan x="${MARGIN}" dy="${i ? 20 : 0}">${escapeXml(line)}</tspan>`)
+    .join("");
+  const pictures = project.shots
+    .map((shot, i) => {
+      const { x, y, w, h } = slots[i];
+      const clip = `clip-path="url(#s${i})"`;
+      const inside = shot.diagram
+        ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}" fill="${p.surface}"/><svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${DIAGRAMS[shot.diagram](w, h)}</svg>`
+        : fixed(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}" fill="${p.surface}"/>${images[shot.file] ? `<image href="${images[shot.file]}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" ${clip}/>` : ""}`);
+      return `<clipPath id="s${i}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}"/></clipPath>${inside}<rect x="${x + 0.5}" y="${y + 0.5}" width="${w - 1}" height="${h - 1}" rx="${RADIUS.panel - 0.5}" fill="none" stroke="${p.structure}"/><text x="${x}" y="${y + h + BLOCK.caption}" font-size="${TYPE.label}"><tspan ${designator}>OUT ${i}</tspan><tspan x="${x + BLOCK.outputLabel}" fill="${p.text2}">${escapeXml(shot.caption)}</tspan></text>`;
+    })
+    .join("\n    ");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">
+  <title id="t">${escapeXml(project.title)}</title>
+  <desc id="d">${escapeXml(`${project.short} Pictures: ${project.shots.map((s) => s.caption).join("; ")}.`)}</desc>
+  ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
+  <g font-family="${SANS}" font-weight="500">
+    <text x="${MARGIN}" y="28" font-weight="600" font-size="${TYPE.title}" fill="${p.text}">${escapeXml(project.title)}</text>
+    <text x="${right}" y="28" text-anchor="end" font-size="${TYPE.body}">${badge}<tspan${badge ? ' dx="12"' : ""} fill="${p.accent}">${escapeXml(project.role)}</tspan></text>
+    <text y="52" font-size="${TYPE.body}" fill="${p.text2}">${summary}</text>
+    ${pictures}
   </g>
 </svg>
 `;
@@ -108,13 +147,25 @@ export function renderCardRow(cardSvg, stackSvg, { fonts = "" } = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-  const write = (path, svg) => {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, svg);
+  // Every image is drawn once for the dark page, then recoloured for the light one.
+  const write = (name, svg) => {
+    for (const [theme, out] of [["dark", svg], ["light", retheme(svg)]]) {
+      const path = join(root, "assets", `${name}-${theme}.svg`);
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, out);
+    }
   };
   const fonts = fontCss(root);
+  const textFonts = fontCss(root, ["sans500", "sans600", "cond500"]);
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
-  write(join(root, "assets/chip-header.svg"), renderHero(gpuData, { fonts }));
-  write(join(root, "assets/projects.svg"), renderProjects(layers, { fonts }));
-  write(join(root, "assets/card-row.svg"), renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
+  write("hero", renderHero(gpuData, { fonts }));
+  write("card-row", renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
+  const onDie = new Map(gpuData.repos.map((repo, g) => [repo.title, g]));
+  layers.forEach((layer, i) => {
+    write(`layers/${layer.slug}`, renderLayerStrip(layer, i, layers.length, { fonts: textFonts }));
+    for (const project of layer.projects) {
+      const images = Object.fromEntries(project.shots.filter((s) => s.file).map((s) => [s.file, `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", s.file)).toString("base64")}`]));
+      write(`projects/${project.slug}`, renderProject(project, { gpc: onDie.get(project.title), images, fonts: textFonts }));
+    }
+  });
 }

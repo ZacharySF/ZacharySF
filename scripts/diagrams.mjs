@@ -88,4 +88,50 @@ export function nixosFlake(w, h) {
   ${text(drive, outB + 44, "External drive", { size: TYPE.body, weight: 600, fill: p.text })}${text(drive, outB + 60, "Its own root, boot and swap", { fill: p.text3 })}`;
 }
 
-export const DIAGRAMS = { orionBoards, nixosFlake };
+// A chip-style block: silver frame, dark body.
+const die = (x, y, w, h) => `${rect(x - 2, y - 2, w + 4, h + 4, p.silver)}${rect(x, y, w, h, p.bg)}`;
+
+/**
+ * MisaOS, lead slot: one imported root drawn as a sealed block. Left, the files the app sees (its own);
+ * right, host locations that do not exist in its view (hatched, like the hero's fused-off cluster);
+ * below, the NixOS host and the single folder a plan grants.
+ */
+export function misaView(w, h) {
+  const body = { x: 16, y: 44, w: w - 32, h: 150 };
+  const tile = { w: 232, h: 24 };
+  const column = (x, head, rows, fill, granted = -1) =>
+    text(x, body.y + 22, head, { fill: p.text3, caps: true }) +
+    rows
+      .map(([path, what], i) => {
+        const y = body.y + 30 + i * (tile.h + 4);
+        return `${rect(x, y, tile.w, tile.h, fill)}${i === granted ? `<rect x="${x + 1}" y="${y + 1}" width="${tile.w - 2}" height="${tile.h - 2}" fill="none" stroke="${p.accent}" stroke-width="2"/>` : ""}${text(x + 8, y + 16, path, { fill: p.text })}${text(x + tile.w - 8, y + 16, what, { fill: p.text3, anchor: "end" })}`;
+      })
+      .join("");
+  const inside = [["/usr/bin/xclock", "declared export"], ["/lib", "its own loader"], ["/tmp", "fresh each run"], ["/mnt/share", "granted folder"]];
+  const absent = [["/nix/store", "host packages"], ["/etc/nixos", "host config"], ["/home/you", "your files"], ["network", "no connection"]];
+  const host = { y: 244, h: 72 };
+  const grant = body.x + 12 + 172; // trace from the granted tile down to the host
+  return `${text(body.x, 28, "Debian root, sealed", { size: TYPE.body, weight: 600, fill: p.text })}
+  ${fixed(`<defs><pattern id="absent" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern></defs>${die(body.x, body.y, body.w, body.h)}${column(body.x + 12, "Inside: the image's own files", inside, p.well, 3)}${column(body.x + body.w - 12 - tile.w, "Absent from its view", absent, "url(#absent)")}
+  ${rect(body.x, host.y, body.w, host.h, p.structure, 2)}${text(body.x + 12, host.y + 28, "NixOS host", { size: TYPE.body, weight: 600, fill: p.text })}${text(body.x + 12, host.y + 48, "Keeps its boot, services and accounts", { fill: p.text2 })}
+  ${rect(grant - 7, host.y, 16, 8, p.silverLight)}${text(grant + 20, host.y + 28, "/home/you/share", { fill: p.text })}`)}
+  <rect x="${grant}" y="${body.y + 30 + 3 * (tile.h + 4) + tile.h}" width="2" height="${host.y - (body.y + 30 + 3 * (tile.h + 4) + tile.h)}" fill="${p.accent}"/>
+  ${text(grant + 14, host.y - 16, "The one host path the plan grants", { fill: p.text2 })}`;
+}
+
+/** MisaOS, thumbnail: the four checks an image passes before it may launch, as test points on one trace. */
+export function misaChecks(w, h) {
+  const stops = ["Lock", "Approve", "Verify", "Qualify"];
+  const pads = stops.map((name, i) => `${rect(20 + i * 62, 62, 12, 12, p.accent)}${text(26 + i * 62, 98, name, { fill: p.text3, caps: true, anchor: "middle" })}`).join("");
+  return `${text(12, 28, "Before anything runs", { weight: 600, fill: p.text })}<g shape-rendering="crispEdges">${rect(20, 67, 198, 2, p.text3)}${pads}</g>${text(12, 130, "No install script ever runs", { fill: p.text2 })}`;
+}
+
+/** MisaOS, thumbnail: a glibc root and a musl root seated side by side on the one host. */
+export function misaRoots(w, h) {
+  const chip = (x, name, libc) =>
+    `${die(x, 46, 104, 48)}${text(x + 10, 66, name, { weight: 600, fill: p.text })}${text(x + 10, 84, libc, { fill: p.text3, caps: true })}${Array.from({ length: 8 }, (_, i) => rect(x + 10 + i * 12, 96, 4, 8, p.silverLight)).join("")}`;
+  return `${text(12, 28, "Two Linux families, one host", { weight: 600, fill: p.text })}
+  ${fixed(`<g shape-rendering="crispEdges">${rect(12, 104, w - 24, 28, p.structure)}${chip(14, "Debian", "glibc")}${chip(w - 14 - 104, "Void", "musl")}</g>${text(w / 2, 123, "NixOS host", { fill: p.text, anchor: "middle" })}`)}`;
+}
+
+export const DIAGRAMS = { orionBoards, nixosFlake, misaView, misaChecks, misaRoots };

@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderProjects, wrap, SLOT } from "./build-assets.mjs";
+import { BLOCK, renderProject, slotsFor } from "./build-assets.mjs";
+import { ORION_BITRATES, orionSweep } from "./diagrams.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo, shareLanguages } from "./fetch-github.mjs";
 import { layers } from "./projects.mjs";
 import { calendarStats, renderCalendarCard } from "./card.mjs";
-import { PALETTE } from "./style.mjs";
+import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const day = (date, count, level) => ({ date, count, level });
 const calendar = {
@@ -50,46 +51,101 @@ test("GPC slots without a repo are drawn fused off, as on a harvested die", () =
   assert.equal((svg.match(/data-fused=/g) ?? []).length, 8 - gpuData.repos.length);
 });
 
-const sample = [
-  {
-    slug: "os",
-    title: "Kernels & <isolation>",
-    level: "kernel",
-    projects: [{ slug: "x", title: "Ampersand & co", role: "OS core", short: "Kernel keeps evidence read only & signs every <receipt>." }],
-  },
-];
+const sampleLayer = { slug: "os", title: "Kernels & <isolation>", level: "kernel<" };
+const sampleProject = {
+  slug: "x",
+  title: "Ampersand & co",
+  role: "OS core",
+  short: "Kernel keeps evidence read only & signs every <receipt>.",
+  shots: [{ file: "a.jpg", caption: "Sealed & <signed>" }, { file: "b.jpg", caption: "Two" }, { file: "c.jpg", caption: "Three" }],
+};
 
 test("markup characters in project data are escaped, not emitted raw", () => {
-  const svg = renderProjects(sample);
+  const svg = renderProject(sampleProject, sampleLayer, 0, 1);
   assert.ok(!svg.includes("& "), "raw ampersand would make the SVG invalid");
-  assert.ok(!svg.includes("<isolation>") && !svg.includes("<receipt>"));
-  assert.ok(svg.includes("Ampersand &amp; co"));
+  assert.ok(!svg.includes("<isolation>") && !svg.includes("<receipt>") && !svg.includes("<signed>") && !svg.includes("KERNEL<"));
+  assert.ok(svg.includes("Ampersand &amp; co") && svg.includes("Sealed &amp; &lt;signed&gt;"));
 });
 
-test("wrap never exceeds the line budget and keeps every word", () => {
-  const text = "Two Raspberry Pis on NixOS measuring ROS 2 control latency over a BATMAN-adv mesh";
-  const lines = wrap(text, 30);
-  for (const line of lines) assert.ok(line.length <= 30, line);
-  assert.equal(lines.join(" "), text);
-});
-
-test("every real project summary fits its slot", () => {
+test("every real project summary and caption fits on one line of its slot", () => {
   for (const layer of layers) {
     for (const project of layer.projects) {
-      const lines = wrap(project.short, SLOT.charsPerLine);
-      assert.ok(lines.length <= SLOT.maxLines, `${project.slug}: ${lines.length} lines`);
+      assert.ok(project.short.length <= BLOCK.summaryChars, `${project.slug} summary: ${project.short.length}`);
+      slotsFor(project).forEach((slot, i) => {
+        const room = Math.floor(slot.w / BLOCK.captionCharWidth);
+        assert.ok(project.shots[i].caption.length <= room, `${project.slug} caption ${i}: ${project.shots[i].caption.length} > ${room}`);
+      });
     }
   }
 });
 
-test("the projects panel lists every project once, each layer row lighting only its own depth bar", () => {
-  const svg = renderProjects(layers);
-  const total = layers.reduce((n, l) => n + l.projects.length, 0);
-  assert.equal((svg.match(/data-project=/g) ?? []).length, total);
-  layers.forEach((_, i) => {
-    assert.equal((svg.match(new RegExp(`data-row="${i}" data-depth="\\d" data-active="true"`, "g")) ?? []).length, 1);
-    assert.ok(svg.includes(`data-row="${i}" data-depth="${i}" data-active="true"`));
+test("pictures line up with the hero's margins, and stacked thumbnails end level with the lead", () => {
+  for (const layer of layers) {
+    for (const project of layer.projects) {
+      const slots = slotsFor(project);
+      assert.equal(Math.min(...slots.map((s) => s.x)), 24, project.slug);
+      assert.equal(Math.max(...slots.map((s) => s.x + s.w)), README_W - 24, project.slug);
+      if (slots.length === 3) {
+        const [lead, upper, lower] = slots;
+        assert.equal(upper.x - (lead.x + lead.w), 16, "gap between the lead and the thumbnails");
+        assert.equal(lower.y + lower.h, lead.y + lead.h, `${project.slug}: columns end at different heights`);
+        assert.ok(lower.y - (upper.y + upper.h) >= 32, "room for the upper thumbnail's caption");
+      }
+    }
+  }
+});
+
+test("each project block lights only its own layer's depth bar", () => {
+  layers.forEach((layer, i) => {
+    for (const project of layer.projects) {
+      const svg = renderProject(project, layer, i, layers.length);
+      assert.equal((svg.match(/data-depth="\d" data-active="true"/g) ?? []).length, 1);
+      assert.ok(svg.includes(`data-depth="${i}" data-active="true"`));
+      assert.equal((svg.match(/data-depth=/g) ?? []).length, layers.length);
+    }
   });
+});
+
+test("Orion bitrate bars are linear: twice the bitrate is twice the height", () => {
+  const svg = orionSweep(250, 148);
+  const height = (rate) => Number(svg.match(new RegExp(`data-rate="${rate}" [^>]*height="(\\d+)"`))?.[1] ?? 0);
+  assert.equal(height(0), 0, "the no-video baseline draws no bar");
+  const top = Math.max(...ORION_BITRATES);
+  for (const rate of ORION_BITRATES) assert.ok(Math.abs(height(rate) / height(top) - rate / top) <= 0.01, `${rate} Mbps: ${height(rate)} px`);
+});
+
+// WCAG contrast ratio between two #rrggbb colours.
+const contrast = (a, b) => {
+  const lum = (hex) => {
+    const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [lo, hi] = [lum(a), lum(b)].sort((x, y) => x - y);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+test("text stays readable on both GitHub page colours", () => {
+  for (const [palette, page] of [[PALETTE, "#0d1117"], [LIGHT, "#ffffff"]]) {
+    for (const role of ["text", "text2", "text3", "accent"]) {
+      assert.ok(contrast(palette[role], page) >= 4.5, `${role} ${palette[role]} on ${page}: ${contrast(palette[role], page).toFixed(2)}`);
+    }
+  }
+});
+
+test("the light variant recolours page text and leaves drawn hardware as it is", () => {
+  const dark = `<text fill="${PALETTE.text}">name</text>${fixed(`<rect fill="${PALETTE.text}"/><rect fill="${PALETTE.bg}"/>`)}<rect fill="${PALETTE.ramp[3]}"/>`;
+  const light = retheme(dark);
+  assert.ok(light.includes(`<text fill="${LIGHT.text}">name</text>`));
+  assert.ok(light.includes(`<rect fill="${PALETTE.text}"/><rect fill="${PALETTE.bg}"/>`), "hardware keeps its own colours");
+  assert.ok(light.includes(`<rect fill="${LIGHT.ramp[3]}"/>`));
+});
+
+test("no dark-page text colour is left on the light hero outside the die", () => {
+  const light = retheme(renderHero(gpuData));
+  const page = light.replace(/<!--fixed-->[\s\S]*?<!--\/fixed-->/g, "");
+  assert.notEqual(page, light, "the die is marked as fixed hardware");
+  for (const role of ["text", "text2", "text3"]) assert.ok(!page.includes(PALETTE[role]), `${role} would be unreadable on white`);
+  assert.ok(page.includes(`fill="${LIGHT.text}">Zachary Stubbs<`));
 });
 
 const gpuData = {

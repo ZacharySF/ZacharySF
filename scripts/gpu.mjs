@@ -5,7 +5,7 @@
 //   MC  = one memory controller per language, its PHY teeth lit by that language's share of bytes
 // Drawn 1:1 for the 846 px README column with the shared tokens in style.mjs.
 import { escapeXml } from "./svg.mjs";
-import { COND, MARGIN, PALETTE as p, README_W, SANS, TYPE } from "./style.mjs";
+import { COND, fixed, MARGIN, PALETTE as p, README_W, SANS, TYPE } from "./style.mjs";
 
 const SMS_PER_GPC = 12;
 const GPC_SLOTS = 8;
@@ -144,16 +144,16 @@ export function renderHero(data, { fonts = "" } = {}) {
   <desc id="d">A GPU floorplan wired to GitHub: ${data.repos.length} clusters of ${SMS_PER_GPC} SMs are projects whose SMs light up on a log scale of my contributions; the six memory controllers are my main languages (${memory}).</desc>
   <defs>
     ${fonts ? `<style>${fonts}</style>` : ""}
-    <pattern id="sram" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="2" height="2" fill="${p.surface}"/><rect width="1" height="1" fill="${p.structure}"/></pattern>
+    ${fixed(`<pattern id="sram" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="2" height="2" fill="${p.surface}"/><rect width="1" height="1" fill="${p.structure}"/></pattern>
     <pattern id="rf" width="3" height="2" patternUnits="userSpaceOnUse"><rect width="3" height="2" fill="${p.surface}"/><rect width="3" height="1" fill="${p.well}"/></pattern>
     <pattern id="logic" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="${p.surface}"/><rect x="0" y="0" width="2" height="1" fill="${p.well}"/><rect x="3" y="1" width="1" height="2" fill="${p.structure}"/><rect x="1" y="3" width="2" height="1" fill="${p.structure}"/><rect x="4" y="4" width="2" height="1" fill="${p.well}"/><rect x="0" y="5" width="1" height="1" fill="${p.well}"/></pattern>
     <pattern id="logicDense" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.well}"/><rect width="1" height="1" fill="${p.structure}"/><rect x="2" y="1" width="2" height="1" fill="${p.surface}"/><rect x="1" y="3" width="1" height="1" fill="${p.structure}"/></pattern>
     <pattern id="wires" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="${p.surface}"/><rect width="3" height="1" fill="${p.structure}"/></pattern>
     <pattern id="phy" width="20" height="4" patternUnits="userSpaceOnUse"><rect width="20" height="4" fill="${p.surface}"/><rect x="2" y="1" width="12" height="2" fill="${p.well}"/><rect x="16" y="1" width="2" height="2" fill="${p.structure}"/></pattern>
-    <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern>
+    <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern>`)}
   </defs>
 
-  <g shape-rendering="crispEdges">
+  ${fixed(`<g shape-rendering="crispEdges">
     <rect x="${ring.x}" y="${ring.y}" width="${ring.w}" height="${ring.h}" rx="2" fill="${p.surface}"/>
     <g fill="${p.cap}">${caps.join("")}</g>
     <rect x="${die.x - 2}" y="${die.y - 2}" width="${die.w + 4}" height="${die.h + 4}" fill="${p.silver}"/>
@@ -171,7 +171,7 @@ export function renderHero(data, { fonts = "" } = {}) {
       const { x, y, top } = gpcAt(g);
       return `<text data-gpc-label="${g}" x="${x + 3}" y="${stripY(y, top) + 11}"${g < data.repos.length ? "" : ` fill="${p.text3}"`}>GPC${g}</text>`;
     }).join("")}
-  </g>
+  </g>`)}
 
   <g font-family="${SANS}" font-weight="500">
     <text x="${px}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">ZS-102 · ${data.repos.length} GPC · ${data.repos.length * SMS_PER_GPC} SM · 384-BIT</text>

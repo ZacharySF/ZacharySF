@@ -24,6 +24,34 @@ export const PALETTE = {
   cap: "#9aa3ae", // decoupling caps on the substrate, a shade of silver
 };
 
+// The same roles on GitHub's white page. Images are drawn once in PALETTE; retheme() swaps the colours.
+// On white the ramp runs the other way: the darkest step is the largest value.
+export const LIGHT = {
+  bg: "#ffffff",
+  surface: "#f6f8fa",
+  well: "#eef1f5",
+  structure: "#d1d9e0",
+  text: "#1f2328",
+  text2: "#3d444d",
+  text3: "#59636e",
+  ramp: ["#74b0ee", "#3b8ade", "#1c64b8", "#0b3a75"],
+  accent: "#1c64b8",
+};
+
+/** Marks drawn hardware (the die, the graphics card, screenshots) that keeps its colours on any page. */
+export const fixed = (markup) => `<!--fixed-->${markup}<!--/fixed-->`;
+
+const SWAPS = new Map(Object.keys(LIGHT).flatMap((role) => [PALETTE[role]].flat().map((hex, i) => [hex, [LIGHT[role]].flat()[i]])));
+const SWAP_RE = new RegExp([...SWAPS.keys()].join("|"), "g");
+
+/** The light-page variant of an image drawn in PALETTE: every colour outside fixed() regions is swapped. */
+export function retheme(svg) {
+  return svg
+    .split(/(<!--fixed-->[\s\S]*?<!--\/fixed-->)/)
+    .map((part) => (part.startsWith("<!--fixed-->") ? part : part.replace(SWAP_RE, (hex) => SWAPS.get(hex))))
+    .join("");
+}
+
 // Type scale: at most four sizes per image; nothing below 12 px at 1x.
 export const TYPE = { label: 12, body: 14, title: 20, display: 32 };
 export const RADIUS = { panel: 6, part: 2 };

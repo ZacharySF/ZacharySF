@@ -2,7 +2,7 @@
 // "isocalendar": the card lies flat and its shroud top is the calendar grid (weeks along the card,
 // days across it), each day a flat tile lit on the blue ramp by its contribution level.
 // The fan, I/O bracket and PCIe edge connector make it read as a GPU.
-import { PALETTE as p } from "./style.mjs";
+import { fixed, PALETTE as p } from "./style.mjs";
 
 /** Best streak, running streak, busiest day and mean contributions per day. */
 export function calendarStats(days) {
@@ -84,7 +84,7 @@ export function renderCalendarCard(calendar, { fonts = "" } = {}) {
   <desc id="d">${stats.total} contributions in the last ${CARD_WEEKS} weeks. Best day ${stats.maxDay.count} on ${stats.maxDay.date}, best streak ${stats.bestStreak} days.</desc>
   ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
 
-  ${bracket}
+  ${fixed(`${bracket}
   <polygon points="${sideJ}" fill="${p.well}"/>
   <polygon points="${sideI}" fill="${p.structure}"/>
   ${fingers}
@@ -93,7 +93,7 @@ export function renderCalendarCard(calendar, { fonts = "" } = {}) {
   <polygon points="${ring(3.5)}" fill="${p.bg}" stroke="${p.silver}" stroke-width="2"/>
   <g fill="${p.structure}">${blades}</g>
   <polygon points="${ring(0.9)}" fill="${p.silverLight}" stroke="${p.silver}"/>
-  ${bars}
+  ${bars}`)}
 </svg>
 `;
 }

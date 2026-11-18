@@ -53,9 +53,14 @@ export function renderHero(data, { fonts = "" } = {}) {
       const { x, y } = smAt(gx, gy, top, s);
       const on = s < lit;
       // SM anatomy as on a die shot: logic fill, four register-file columns (one per processing
-      // block) and an L1/shared SRAM macro. Lit SMs tint the same texture instead of hiding it.
+      // block) and an L1/shared SRAM macro. A lit SM keeps that anatomy: the tint goes over the logic,
+      // then its register files are redrawn a step brighter, its SRAM macro stays dark and its top
+      // edge catches the light, so it reads as working silicon and not as a flat tile.
       const anatomy = [1, 5, 9, 13].map((dx) => `<rect x="${x + dx}" y="${y + 1}" width="3" height="8" fill="url(#rf)"/>`).join("") + `<rect x="${x + 17}" y="${y + 1}" width="3" height="8" fill="url(#sram)"/>`;
-      return `<rect x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="url(#logic)"/>${anatomy}<rect data-sm="${g}-${s}" data-lit="${on}" x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="${on ? p.ramp[smLevel(s) - 1] : "none"}"${on ? ' fill-opacity="0.7"' : ""}/>`;
+      const level = smLevel(s);
+      const bright = p.ramp[Math.min(3, level)];
+      const glow = on ? [1, 5, 9, 13].map((dx) => `<rect x="${x + dx}" y="${y + 2}" width="3" height="6" fill="${bright}" fill-opacity="0.45"/>`).join("") + `<rect x="${x + 17}" y="${y + 1}" width="3" height="8" fill="${p.bg}" fill-opacity="0.5"/><rect x="${x}" y="${y}" width="${SM.w}" height="1" fill="${level === 4 ? p.text : bright}" fill-opacity="0.7"/>` : "";
+      return `<rect x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="url(#logic)"/>${anatomy}<rect data-sm="${g}-${s}" data-lit="${on}" x="${x}" y="${y}" width="${SM.w}" height="${SM.h}" fill="${on ? p.ramp[level - 1] : "none"}"${on ? ` fill-opacity="${0.7 + level * 0.05}"` : ""}/>${glow}`;
     }).join("");
     return `<g data-gpc="${g}"><title>GPC${g} · ${escapeXml(repo.title)}: ${repo.contributions} contributions</title><rect x="${gx}" y="${gy}" width="${GPC.w}" height="${GPC.h}" fill="${p.bg}"/><rect x="${gx + 1}" y="${stripY(gy, top)}" width="${GPC.w - 2}" height="${STRIP}" fill="url(#logicDense)"/>${sms}</g>`;
   });
@@ -107,9 +112,19 @@ export function renderHero(data, { fonts = "" } = {}) {
 
   // --- Substrate with decoupling caps, then the die with its seal ring ---
   // Caps sit in small banks along each edge (as on a real package), not as a continuous dashed line.
+  // Each cap is a body with a bright terminal at either end.
   const caps = [];
+  const terminals = [];
   const capBank = (x, y, horizontal) => {
-    for (let k = 0; k < 6; k++) caps.push(horizontal ? `<rect x="${x + k * 5}" y="${y}" width="3" height="5"/>` : `<rect x="${x}" y="${y + k * 5}" width="5" height="3"/>`);
+    for (let k = 0; k < 6; k++) {
+      if (horizontal) {
+        caps.push(`<rect x="${x + k * 5}" y="${y}" width="3" height="5"/>`);
+        terminals.push(`<rect x="${x + k * 5}" y="${y}" width="3" height="1"/><rect x="${x + k * 5}" y="${y + 4}" width="3" height="1"/>`);
+      } else {
+        caps.push(`<rect x="${x}" y="${y + k * 5}" width="5" height="3"/>`);
+        terminals.push(`<rect x="${x}" y="${y + k * 5}" width="1" height="3"/><rect x="${x + 4}" y="${y + k * 5}" width="1" height="3"/>`);
+      }
+    }
   };
   for (const fx of [0.16, 0.5, 0.84]) {
     const x = Math.round(ring.x + fx * ring.w - 14);
@@ -150,15 +165,21 @@ export function renderHero(data, { fonts = "" } = {}) {
     <pattern id="logicDense" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.well}"/><rect width="1" height="1" fill="${p.structure}"/><rect x="2" y="1" width="2" height="1" fill="${p.surface}"/><rect x="1" y="3" width="1" height="1" fill="${p.structure}"/></pattern>
     <pattern id="wires" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="${p.surface}"/><rect width="3" height="1" fill="${p.structure}"/></pattern>
     <pattern id="phy" width="20" height="4" patternUnits="userSpaceOnUse"><rect width="20" height="4" fill="${p.surface}"/><rect x="2" y="1" width="12" height="2" fill="${p.well}"/><rect x="16" y="1" width="2" height="2" fill="${p.structure}"/></pattern>
-    <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern>`)}
+    <pattern id="fused" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern>
+    <pattern id="vias" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="${p.surface}"/><rect x="3" y="3" width="2" height="2" fill="${p.well}"/></pattern>`)}
   </defs>
 
   ${fixed(`<g shape-rendering="crispEdges">
-    <rect x="${ring.x}" y="${ring.y}" width="${ring.w}" height="${ring.h}" rx="2" fill="${p.surface}"/>
-    <g fill="${p.cap}">${caps.join("")}</g>
+    <rect x="${ring.x}" y="${ring.y}" width="${ring.w}" height="${ring.h}" rx="2" fill="url(#vias)"/>
+    <rect x="${ring.x + 0.5}" y="${ring.y + 0.5}" width="${ring.w - 1}" height="${ring.h - 1}" rx="1.5" fill="none" stroke="${p.structure}"/>
+    <polygon points="${ring.x + 4},${ring.y + ring.h - 4} ${ring.x + 13},${ring.y + ring.h - 4} ${ring.x + 4},${ring.y + ring.h - 13}" fill="${p.cap}"/>
+    <g fill="${p.cap}">${caps.join("")}</g><g fill="${p.silverLight}">${terminals.join("")}</g>
     <rect x="${die.x - 2}" y="${die.y - 2}" width="${die.w + 4}" height="${die.h + 4}" fill="${p.silver}"/>
+    <rect x="${die.x - 2}" y="${die.y - 2}" width="${die.w + 4}" height="1" fill="${p.silverLight}"/><rect x="${die.x - 2}" y="${die.y - 2}" width="1" height="${die.h + 4}" fill="${p.silverLight}"/>
+    <rect x="${die.x - 2}" y="${die.y + die.h + 1}" width="${die.w + 4}" height="1" fill="${p.silverDark}"/><rect x="${die.x + die.w + 1}" y="${die.y - 2}" width="1" height="${die.h + 4}" fill="${p.silverDark}"/>
     <rect x="${die.x}" y="${die.y}" width="${die.w}" height="${die.h}" fill="${p.bg}"/>
     <rect x="${die.x + 1.5}" y="${die.y + 1.5}" width="${die.w - 3}" height="${die.h - 3}" fill="none" stroke="${p.structure}"/>
+    ${[[4, 4, 1, 1], [die.w - 4, 4, -1, 1], [4, die.h - 4, 1, -1], [die.w - 4, die.h - 4, -1, -1]].map(([dx, dy, sx, sy]) => `<rect x="${die.x + dx + (sx < 0 ? -7 : 0)}" y="${die.y + dy + (sy < 0 ? -1 : 0)}" width="7" height="1" fill="${p.silver}"/><rect x="${die.x + dx + (sx < 0 ? -1 : 0)}" y="${die.y + dy + (sy < 0 ? -7 : 0)}" width="1" height="7" fill="${p.silver}"/>`).join("")}
     ${ioBlocks.join("")}
     ${mcs.join("")}
     ${gpcs.join("")}

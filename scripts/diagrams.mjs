@@ -33,47 +33,24 @@ function board(x, y, model) {
 const BOARD_HOLES = [[7, 7], [123, 7], [7, 105], [123, 105]];
 const boardHoles = (x, y) => BOARD_HOLES.map(([cx, cy]) => `<circle cx="${x + cx}" cy="${y + cy}" r="3" fill="${p.surface}"/>`).join("");
 
-/** Orion Mesh, lead slot: the two boards from above, the radio link between their wireless parts, and each node's job. */
+/**
+ * Orion Mesh, full width: the two boards from above, the radio link between their wireless parts,
+ * what travels over it, and each node's job.
+ */
 export function orionBoards(w, h) {
-  const [left, right, top] = [24, w - 24 - 170, 88];
+  const [left, right, top] = [24, w - 24 - 170, 80];
   const [radioA, radioB] = [left + 26, right + 8]; // Pi 4 wireless module, Pi 3 chip antenna
   const jobs = (x, name, model, rows) => text(x, top + 140, name, { size: TYPE.body, weight: 600, fill: p.text }) + text(x, top + 158, `Raspberry Pi ${model}`, { fill: p.text3, caps: true }) + lines(x, top + 182, rows);
+  const note = (x, head, rows) => text(x, top + 40, head, { fill: p.text3, caps: true }) + lines(x, top + 62, rows);
   return `${fixed(board(left, top, 4) + board(right, top, 3))}${boardHoles(left, top)}${boardHoles(right, top)}
   <path d="M${radioA} ${top + 26} V48 H${radioB} V${top + 20}" fill="none" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 4"/>
   <circle cx="${radioA}" cy="${top + 28}" r="4" fill="${p.accent}"/><circle cx="${radioB}" cy="${top + 22}" r="4" fill="${p.accent}"/>
   ${text((radioA + radioB) / 2, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: p.text, anchor: "middle" })}
   ${text(radioA + 10, 72, "wlan0", { fill: p.text3, caps: true })}${text(radioB + 10, 72, "wlan0", { fill: p.text3, caps: true })}
-  ${text(w / 2, top + 30, "On both nodes", { fill: p.text3, caps: true, anchor: "middle" })}${["ROS 2", "CycloneDDS", "BATMAN-adv", "Chrony"].map((name, i) => text(w / 2, top + 52 + i * 16, name, { anchor: "middle" })).join("")}
+  <rect x="226" y="50" width="1" height="${top - 24}" fill="${p.text3}"/>
+  ${note(226, "On the link", ["Control at 50 Hz", "H.264 video"])}${note(350, "Video load", ["0 to 15 Mbps", "in nine steps"])}${note(466, "On both nodes", ["ROS 2, CycloneDDS", "BATMAN-adv, Chrony"])}
   ${jobs(left, "Drone node", 4, ["Publishes control at 50 Hz", "Streams H.264 at 0 to 15 Mbps", "Serves the reference clock"])}
   ${jobs(right, "Ground node", 3, ["Times every control message", "Counts gaps in the sequence", "Logs CPU use per trial"])}`;
-}
-
-export const ORION_CONTROL_HZ = 50;
-
-/** Orion Mesh, thumbnail: 200 ms of the shared channel. Control ticks sit 20 ms apart (50 Hz); video occupancy is schematic. */
-export function orionChannel(w, h) {
-  const [x0, x1, span] = [72, w - 12, 200];
-  const period = 1000 / ORION_CONTROL_HZ;
-  const scale = (x1 - x0) / span;
-  const ticks = Array.from({ length: span / period }, (_, i) => `<rect data-tick="${i}" x="${Math.round(x0 + i * period * scale)}" y="44" width="2" height="20" fill="${p.accent}"/>`).join("");
-  return `${text(12, 28, "200 ms on the channel", { weight: 600, fill: p.text })}
-  ${text(12, 59, "Control")}${text(12, 93, "Video")}
-  <g shape-rendering="crispEdges">${ticks}${rect(x0, 78, x1 - x0, 20, p.ramp[1])}${rect(x0, 110, x1 - x0, 1, p.text3)}</g>
-  ${text(x0, 130, "0", { fill: p.text3 })}${text(x1, 130, `${span} ms`, { fill: p.text3, anchor: "end" })}`;
-}
-
-export const ORION_BITRATES = [0, 1, 2, 4, 6, 8, 10, 12, 15];
-
-/** Orion Mesh, thumbnail: the encoder target of each trial condition; bar height is linear in Mbps. */
-export function orionSweep(w, h) {
-  const [bar, pitch, base, max] = [18, 26, 112, 64];
-  const top = Math.max(...ORION_BITRATES);
-  const bars = ORION_BITRATES.map((rate, i) => {
-    const x = 12 + i * pitch;
-    const height = Math.round((max * rate) / top);
-    return `${rect(x, base - max, bar, max, p.well)}${height ? `<rect data-rate="${rate}" x="${x}" y="${base - height}" width="${bar}" height="${height}" fill="${p.accent}"/>` : ""}${text(x + bar / 2, base + 18, String(rate), { anchor: "middle" })}`;
-  }).join("");
-  return `${text(12, 28, "Video load per trial", { weight: 600, fill: p.text })}${text(w - 12, 28, "Mbps", { fill: p.text3, anchor: "end" })}<g shape-rendering="crispEdges">${bars}</g>`;
 }
 
 const NIXOS_SYSTEM = ["nix", "boot", "locale", "networking", "audio", "desktop", "users", "packages"];
@@ -111,4 +88,4 @@ export function nixosFlake(w, h) {
   ${text(drive, outB + 44, "External drive", { size: TYPE.body, weight: 600, fill: p.text })}${text(drive, outB + 60, "Its own root, boot and swap", { fill: p.text3 })}`;
 }
 
-export const DIAGRAMS = { orionBoards, orionChannel, orionSweep, nixosFlake };
+export const DIAGRAMS = { orionBoards, nixosFlake };

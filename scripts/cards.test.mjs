@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK, renderLayerStrip, renderProject, renderStats, slotsFor, wrap } from "./build-assets.mjs";
+import { BLOCK, renderLayerStrip, renderProject, renderStats, slotsFor, versionImages, wrap } from "./build-assets.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo, shareLanguages, totalKinds } from "./fetch-github.mjs";
 import { layers } from "./projects.mjs";
@@ -277,4 +277,11 @@ test("every headline number is grouped by thousands and says what it counts and 
     assert.ok(svg.includes(`>${scope}<`), scope);
   }
   assert.ok(svg.includes("6 chip projects"), "the language scope matches the hero's memory controllers");
+});
+
+test("README image links carry each file's version, so a redrawn image is not served from a stale cache", () => {
+  const readme = '<source srcset="assets/hero-light.svg"><img src="assets/hero-dark.svg?v=0ld0ld00" width="846"> <img src="assets/projects/x-dark.svg">';
+  const out = versionImages(readme, (path) => (path.includes("hero") ? "aaaa1111" : "bbbb2222"));
+  assert.equal(out, '<source srcset="assets/hero-light.svg?v=aaaa1111"><img src="assets/hero-dark.svg?v=aaaa1111" width="846"> <img src="assets/projects/x-dark.svg?v=bbbb2222">');
+  assert.equal(versionImages(out, () => "bbbb2222").match(/\?v=/g).length, 3, "restamping replaces the version, it does not stack");
 });

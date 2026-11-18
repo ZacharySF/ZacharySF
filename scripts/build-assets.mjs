@@ -2,6 +2,7 @@
 // the GPU floorplan hero, one block of pictures per project and the graphics-card contribution calendar.
 // Each image is written twice, for GitHub's dark and light pages (see retheme in style.mjs).
 // Usage: node scripts/build-assets.mjs   (reads assets/gpu-data.json and assets/shots, writes assets/**/*.svg)
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -186,6 +187,14 @@ export function renderCardRow(cardSvg, stackSvg, { fonts = "" } = {}) {
 `;
 }
 
+/**
+ * Point every generated image link in the README at `path?v=<version>`. GitHub lets browsers keep an
+ * image for five minutes under its URL, so a redrawn image under the same name shows stale until then.
+ */
+export function versionImages(readme, versionOf) {
+  return readme.replace(/(assets\/[\w./-]+\.svg)(\?v=\w+)?/g, (_, path) => `${path}?v=${versionOf(path)}`);
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   // Every image is drawn once for the dark page, then recoloured for the light one.
@@ -210,4 +219,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       write(`projects/${project.slug}`, renderProject(project, { gpc: onDie.get(project.title), images, fonts: textFonts }));
     }
   });
+  const readmePath = join(root, "README.md");
+  const stamped = versionImages(readFileSync(readmePath, "utf8"), (path) => createHash("sha256").update(readFileSync(join(root, path))).digest("hex").slice(0, 8));
+  writeFileSync(readmePath, stamped);
 }

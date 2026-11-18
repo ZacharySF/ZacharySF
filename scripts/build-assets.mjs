@@ -110,6 +110,45 @@ export function renderProject(project, { gpc, images = {}, fonts = "" } = {}) {
 `;
 }
 
+/**
+ * Languages and headline numbers in one row. The language shares are the hero's memory controllers
+ * (same data, so the two never disagree); bar length is linear in share. Every number names its scope.
+ */
+export function renderStats(data, { fonts = "" } = {}) {
+  const W = README_W;
+  const bar = { x: 128, max: 240 };
+  const top = Math.max(...data.languages.map((l) => l.share));
+  const rows = data.languages
+    .map((lang, i) => {
+      const y = 60 + i * 20;
+      return `<text x="${MARGIN}" y="${y}" font-size="${TYPE.label}" fill="${p.text2}">${escapeXml(lang.name)}</text><rect data-language="${i}" x="${bar.x}" y="${y - 9}" width="${Math.round((bar.max * lang.share) / top)}" height="8" fill="${p.accent}"/><text x="${bar.x + bar.max + 48}" y="${y}" text-anchor="end" font-size="${TYPE.label}" fill="${p.text2}" style="font-variant-numeric:tabular-nums">${Math.round(lang.share * 100)}%</text>`;
+    })
+    .join("");
+  const figures = [
+    [data.totals.commits, "Commits, all time"],
+    [data.totals.pullRequests, "Pull requests, all time"],
+    [data.calendar.total, "Contributions, last 12 months"],
+    [data.totals.stars, "Stars on my repositories"],
+  ]
+    .map(([value, scope], i) => {
+      const [x, y] = [456 + (i % 2) * 192, 72 + Math.floor(i / 2) * 76];
+      return `<text x="${x}" y="${y}" font-weight="600" font-size="${TYPE.display}" fill="${p.text}" style="font-variant-numeric:tabular-nums">${value.toLocaleString("en-US")}</text><text x="${x}" y="${y + 20}" font-size="${TYPE.label}" fill="${p.text3}">${scope}</text>`;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="184" viewBox="0 0 ${W} 184" role="img" aria-labelledby="t d">
+  <title id="t">Languages and activity</title>
+  <desc id="d">${escapeXml(`${data.languages.map((l) => `${l.name} ${Math.round(l.share * 100)}%`).join(", ")}. ${data.totals.commits} commits and ${data.totals.pullRequests} pull requests all time, ${data.calendar.total} contributions in the last 12 months, ${data.totals.stars} stars.`)}</desc>
+  ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
+  <g font-family="${SANS}" font-weight="500">
+    <text x="${MARGIN}" y="28" font-weight="600" font-size="${TYPE.body}" fill="${p.text}">Languages</text>
+    <text x="${bar.x + bar.max + 48}" y="28" text-anchor="end" font-size="${TYPE.label}" fill="${p.text3}">share of code in ${data.totals.hbmProjects} chip projects</text>
+    <g shape-rendering="crispEdges">${rows}</g>
+    ${figures}
+  </g>
+</svg>
+`;
+}
+
 /** The tech stack, sized to sit beside the 440 x 232 graphics card (no flush on the page). */
 export const STACK = { width: 400, height: 232, charsPerLine: 44 };
 
@@ -160,6 +199,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
   write("hero", renderHero(gpuData, { fonts }));
   write("card-row", renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
+  write("stats", renderStats(gpuData, { fonts: textFonts }));
   const onDie = new Map(gpuData.repos.map((repo, g) => [repo.title, g]));
   layers.forEach((layer, i) => {
     write(`layers/${layer.slug}`, renderLayerStrip(layer, i, layers.length, { fonts: textFonts }));

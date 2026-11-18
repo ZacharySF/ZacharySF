@@ -43,6 +43,13 @@ export function countByRepo(collections) {
   return counts;
 }
 
+/** Lifetime totals of each contribution kind over every repository in `counts` (from countByRepo). */
+export function totalKinds(counts) {
+  const total = { commits: 0, pullRequests: 0, issues: 0, reviews: 0 };
+  for (const entry of counts.values()) for (const kind of Object.keys(total)) total[kind] += entry[kind];
+  return total;
+}
+
 /** Merge per-repo language byte counts and return the top `n` as shares of all bytes. */
 export function shareLanguages(perRepo, n) {
   const bytes = new Map();
@@ -148,6 +155,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       repos: user.public_repos,
       stars: owned.reduce((n, r) => n + r.stargazers_count, 0),
       contributions: repos.reduce((n, r) => n + r.contributions, 0),
+      commits: totalKinds(counts).commits,
+      pullRequests: totalKinds(counts).pullRequests,
+      hbmProjects: GPCS.filter((g) => g.hbm !== false).length, // projects whose code the language shares are measured over
     },
   };
   const out = join(dirname(fileURLToPath(import.meta.url)), "../assets/gpu-data.json");

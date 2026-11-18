@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK, renderProject, slotsFor } from "./build-assets.mjs";
+import { BLOCK, renderLayerStrip, renderProject, slotsFor, wrap } from "./build-assets.mjs";
 import { ORION_BITRATES, orionSweep } from "./diagrams.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo, shareLanguages } from "./fetch-github.mjs";
@@ -61,22 +61,40 @@ const sampleProject = {
 };
 
 test("markup characters in project data are escaped, not emitted raw", () => {
-  const svg = renderProject(sampleProject, sampleLayer, 0, 1);
+  const svg = renderProject(sampleProject) + renderLayerStrip(sampleLayer, 0, 1);
   assert.ok(!svg.includes("& "), "raw ampersand would make the SVG invalid");
   assert.ok(!svg.includes("<isolation>") && !svg.includes("<receipt>") && !svg.includes("<signed>") && !svg.includes("KERNEL<"));
-  assert.ok(svg.includes("Ampersand &amp; co") && svg.includes("Sealed &amp; &lt;signed&gt;"));
+  assert.ok(svg.includes("Ampersand &amp; co") && svg.includes("Sealed &amp; &lt;signed&gt;") && svg.includes("Kernels &amp; &lt;isolation&gt;"));
 });
 
-test("every real project summary and caption fits on one line of its slot", () => {
+test("wrap never exceeds the line budget and keeps every word", () => {
+  const text = "Two Raspberry Pis on NixOS measuring ROS 2 control latency over a BATMAN-adv mesh";
+  const lines = wrap(text, 30);
+  for (const line of lines) assert.ok(line.length <= 30, line);
+  assert.equal(lines.join(" "), text);
+});
+
+test("every real project summary fits its two lines and every caption fits beside its output label", () => {
   for (const layer of layers) {
     for (const project of layer.projects) {
-      assert.ok(project.short.length <= BLOCK.summaryChars, `${project.slug} summary: ${project.short.length}`);
+      const lines = wrap(project.short, BLOCK.summaryChars);
+      assert.ok(lines.length <= BLOCK.summaryLines, `${project.slug} summary: ${lines.length} lines`);
       slotsFor(project).forEach((slot, i) => {
-        const room = Math.floor(slot.w / BLOCK.captionCharWidth);
+        const room = Math.floor((slot.w - BLOCK.outputLabel) / BLOCK.captionCharWidth);
         assert.ok(project.shots[i].caption.length <= room, `${project.slug} caption ${i}: ${project.shots[i].caption.length} > ${room}`);
       });
     }
   }
+});
+
+test("a project on the die carries its GPC number from the hero map; one off the die carries none", () => {
+  assert.ok(renderProject(sampleProject, { gpc: 3 }).includes(">GPC3<"));
+  assert.ok(!renderProject(sampleProject).includes("GPC"));
+});
+
+test("pictures are numbered as outputs in the order they are listed", () => {
+  const svg = renderProject(sampleProject);
+  assert.deepEqual([...svg.matchAll(/>OUT (\d)</g)].map((m) => m[1]), ["0", "1", "2"]);
 });
 
 test("pictures line up with the hero's margins, and stacked thumbnails end level with the lead", () => {
@@ -95,14 +113,12 @@ test("pictures line up with the hero's margins, and stacked thumbnails end level
   }
 });
 
-test("each project block lights only its own layer's depth bar", () => {
+test("each layer strip lights only its own depth bar", () => {
   layers.forEach((layer, i) => {
-    for (const project of layer.projects) {
-      const svg = renderProject(project, layer, i, layers.length);
-      assert.equal((svg.match(/data-depth="\d" data-active="true"/g) ?? []).length, 1);
-      assert.ok(svg.includes(`data-depth="${i}" data-active="true"`));
-      assert.equal((svg.match(/data-depth=/g) ?? []).length, layers.length);
-    }
+    const svg = renderLayerStrip(layer, i, layers.length);
+    assert.equal((svg.match(/data-depth="\d" data-active="true"/g) ?? []).length, 1);
+    assert.ok(svg.includes(`data-depth="${i}" data-active="true"`));
+    assert.equal((svg.match(/data-depth=/g) ?? []).length, layers.length);
   });
 });
 

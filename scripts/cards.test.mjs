@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK, renderLayerStrip, renderProject, slotsFor, wrap } from "./build-assets.mjs";
+import { BLOCK, renderLayerStrip, renderProject, renderStats, slotsFor, wrap } from "./build-assets.mjs";
 import { ORION_BITRATES, orionSweep } from "./diagrams.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
-import { countByRepo, shareLanguages } from "./fetch-github.mjs";
+import { countByRepo, shareLanguages, totalKinds } from "./fetch-github.mjs";
 import { layers } from "./projects.mjs";
 import { calendarStats, renderCalendarCard } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
@@ -243,4 +243,36 @@ test("each GPC on the die is labelled so the map rows can be found on it", () =>
   const svg = renderHero(gpuData);
   for (let g = 0; g < 8; g++) assert.ok(svg.includes(`data-gpc-label="${g}"`), `GPC${g}`);
   assert.ok(svg.includes(">PROJECT<") && svg.includes(">CONTRIBUTIONS<"), "map columns are headed");
+});
+
+test("totalKinds adds each contribution kind over every repository", () => {
+  const counts = new Map([
+    ["a/x", { commits: 13, pullRequests: 2, issues: 1, reviews: 0 }],
+    ["a/y", { commits: 1, pullRequests: 0, issues: 0, reviews: 4 }],
+  ]);
+  assert.deepEqual(totalKinds(counts), { commits: 14, pullRequests: 2, issues: 1, reviews: 4 });
+});
+
+const statsData = {
+  languages: [{ name: "Rust & <C>", share: 0.5 }, { name: "Python", share: 0.25 }, { name: "Nix", share: 0.05 }],
+  calendar: { total: 321 },
+  totals: { commits: 1656, pullRequests: 145, stars: 8, hbmProjects: 6 },
+};
+
+test("language bars are as long as their share: half the share, half the bar", () => {
+  const svg = renderStats(statsData);
+  const width = (i) => Number(svg.match(new RegExp(`data-language="${i}" [^>]*width="(\\d+)"`))[1]);
+  assert.equal(width(1) * 2, width(0));
+  assert.equal(width(2) * 10, width(0));
+  assert.ok(svg.includes("50%") && svg.includes("25%") && svg.includes("5%"));
+  assert.ok(svg.includes("Rust &amp; &lt;C&gt;") && !svg.includes("<C>"));
+});
+
+test("every headline number is grouped by thousands and says what it counts and over what period", () => {
+  const svg = renderStats(statsData);
+  for (const [value, scope] of [["1,656", "Commits, all time"], ["145", "Pull requests, all time"], ["321", "Contributions, last 12 months"], ["8", "Stars on my repositories"]]) {
+    assert.ok(svg.includes(`>${value}<`), value);
+    assert.ok(svg.includes(`>${scope}<`), scope);
+  }
+  assert.ok(svg.includes("6 chip projects"), "the language scope matches the hero's memory controllers");
 });

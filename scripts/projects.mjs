@@ -40,7 +40,7 @@ export const layers = [
         url: "https://github.com/ZacharySF/Orion-Mesh",
         role: "Research",
         short: "Two Raspberry Pis on NixOS, joined by a BATMAN-adv mesh, measure how much an H.264 stream on the same Wi-Fi channel delays 50 Hz ROS 2 control messages. Both SD images build from one flake.",
-        shots: [{ diagram: "orionBoards", height: 352, caption: "The testbed: two boards and the radio link between them" }],
+        shots: [{ diagram: "orionTestbed", height: 472, caption: "The testbed: both nodes, the shared radio link, the message that is timed and the video loads tested" }],
       },
     ],
   },

@@ -14,27 +14,34 @@ const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}"
 // down, j left and down, h up. Coordinates are millimetres; `scale` is px per mm.
 const isoAt = (ox, oy, scale) => (i, j, h = 0) => [Math.round((ox + (i - j) * scale * 0.866) * 10) / 10, Math.round((oy + (i + j) * scale * 0.5 - h * scale) * 10) / 10];
 const poly = (points, fill) => `<polygon points="${points.map(([x, y]) => `${x},${y}`).join(" ")}" fill="${fill}"/>`;
-// Orion Mesh keeps its own colours so it reads apart from the blue-on-navy figures: the green
-// boards, black header and bright sockets of a real Raspberry Pi, the control stream in raspberry red
-// and the video stream in amber. The whole figure is a fixed dark panel, like a screenshot, on either page theme.
+// Orion Mesh keeps its own look so it reads apart from the blue-on-navy figures: a soft purple
+// scene (violet gradient, lilac boards, pearl sockets, pink and aqua streams, a few sparkles).
+// The whole figure is a fixed panel, like a screenshot, on either page theme.
 const ORION = {
-  panel: "#0e1512",
-  rule: "#243029",
-  text: "#eef3ee",
-  text2: "#bcc8bf",
-  text3: "#84968a", // 5.6:1 on the panel
-  control: "#f0527f",
-  video: "#e0a84b",
-  gold: "#c9a24a",
-  cavity: "#0a0c0d",
+  panel: "#221447", // the gradient's middle, for cut-outs
+  rule: "#4c3a86",
+  text: "#ffffff",
+  text2: "#e6defc",
+  text3: "#b9abea", // 6.6:1 on the panel's lightest corner
+  control: "#ff8ad4",
+  video: "#8fe6ff",
+  gold: "#ffe9f6",
+  cavity: "#2a1a55",
 };
 const MATERIAL = {
-  pcb: ["#2f8156", "#1e5a3c", "#143f2a"],
-  metal: ["#d9dde2", "#9ba3ad", "#5a626d"],
-  plastic: ["#262a2f", "#16191c", "#0d0f11"],
-  ribbon: ["#e6e1d3", "#b8b3a4", "#8f8a7c"], // camera and display connectors
-  card: ["#3a4150", "#2a2f3a", "#1c2028"],
+  pcb: ["#b49cff", "#8468e0", "#5f45b8"],
+  metal: ["#ffffff", "#ddd5f8", "#a99cdc"],
+  plastic: ["#4a3590", "#34246c", "#251850"],
+  ribbon: ["#ffd3ee", "#f3a6d6", "#c97fb6"], // camera and display connectors
+  card: ["#7a63d6", "#5a46ac", "#43338a"],
 };
+// Soft backdrop: a violet gradient with two blurred lights, and four-point sparkles.
+const orionBackdrop = (w, h) => `<defs>
+    <linearGradient id="orionBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a0f38"/><stop offset="0.55" stop-color="#2a1958"/><stop offset="1" stop-color="#3b2470"/></linearGradient>
+    <radialGradient id="orionLilac"><stop offset="0" stop-color="#b79cff" stop-opacity="0.38"/><stop offset="1" stop-color="#b79cff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="orionPink"><stop offset="0" stop-color="#ff9ad5" stop-opacity="0.28"/><stop offset="1" stop-color="#ff9ad5" stop-opacity="0"/></radialGradient>
+  </defs>${rect(0, 0, w, h, "url(#orionBg)")}<ellipse cx="${w * 0.5}" cy="96" rx="330" ry="170" fill="url(#orionLilac)"/><ellipse cx="${w * 0.86}" cy="${h * 0.62}" rx="240" ry="190" fill="url(#orionPink)"/><ellipse cx="${w * 0.1}" cy="${h * 0.7}" rx="220" ry="170" fill="url(#orionLilac)"/>`;
+const sparkle = (x, y, r, opacity = 0.9) => `<path d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r} Z" fill="#ffffff" fill-opacity="${opacity}"/>`;
 // A box standing on height h0: its top, the face towards the viewer's left (j side) and right (i side).
 function isoBox(at, [i0, j0, h0], [di, dj, dh], material) {
   const [i1, j1, h1] = [i0 + di, j0 + dj, h0 + dh];
@@ -95,7 +102,7 @@ function isoPi(at, model) {
   const draw = (part) => isoBox(at, [...part.at, part.base ?? PCB], part.size, part.material) + (part.detail ? part.detail(at) : "");
   const under = parts.filter((part) => part.base === 0).map(draw).join("");
   const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="4" ry="2.3" fill="${ORION.gold}"/><ellipse cx="${x}" cy="${y}" rx="2" ry="1.2" fill="${ORION.panel}"/>`; }).join("");
-  const leds = [["#e5484d", 8], ["#3fb950", 11.5]].map(([fill, j]) => { const [x, y] = at(1.4, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="1.8" ry="1.1" fill="${fill}"/>`; }).join("");
+  const leds = [["#ff8ad4", 8], ["#8fe6ff", 11.5]].map(([fill, j]) => { const [x, y] = at(1.4, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="1.8" ry="1.1" fill="${fill}"/>`; }).join("");
   return under + isoBox(at, [0, 0, 0], [85, 56, PCB], "pcb") + holes + leds + parts.filter((part) => part.base !== 0).map(draw).join("");
 }
 
@@ -126,14 +133,16 @@ export function orionTestbed(w, h) {
   const key = (y, swatch, value) => `${swatch}${label(mid - 24, y, value)}`;
 
   const top = `${isoPi(drone, 4)}${isoPi(ground, 3)}
-  <path d="${arc(150)}" fill="none" stroke="${o.video}" stroke-width="6" stroke-opacity="0.45"/>
+  <path d="${arc(150)}" fill="none" stroke="${o.video}" stroke-width="18" stroke-opacity="0.12" stroke-linecap="round"/>
+  <path d="${arc(150)}" fill="none" stroke="${o.video}" stroke-width="6" stroke-opacity="0.55" stroke-linecap="round"/>
   <path d="${arc(150)}" fill="none" stroke="${o.control}" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
-  <circle cx="${ax}" cy="${ay}" r="4" fill="${o.control}"/><circle cx="${bx}" cy="${by}" r="4" fill="${o.control}"/>
+  <circle cx="${ax}" cy="${ay}" r="10" fill="${o.control}" fill-opacity="0.25"/><circle cx="${bx}" cy="${by}" r="10" fill="${o.control}" fill-opacity="0.25"/><circle cx="${ax}" cy="${ay}" r="4" fill="${o.control}"/><circle cx="${bx}" cy="${by}" r="4" fill="${o.control}"/>
+  ${sparkle(mid - 118, 70, 7)}${sparkle(mid + 96, 58, 5, 0.7)}${sparkle(mid + 150, 92, 3, 0.6)}${sparkle(mid - 20, 128, 3, 0.5)}${sparkle(w - 60, 300, 6, 0.7)}${sparkle(40, 250, 4, 0.6)}
   ${text(24, 36, "Drone node", { size: TYPE.body, weight: 600, fill: o.text })}${text(24, 54, "Raspberry Pi 4", { fill: o.text3, caps: true })}
   ${text(w - 24, 36, "Ground node", { size: TYPE.body, weight: 600, fill: o.text, anchor: "end" })}${text(w - 24, 54, "Raspberry Pi 3", { fill: o.text3, caps: true, anchor: "end" })}
   ${text(mid, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: o.text, anchor: "middle" })}
   ${key(170, `<path d="M${mid - 58} 166 h24" stroke="${o.control}" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>`, "Control, 50 Hz")}
-  ${key(192, `<path d="M${mid - 58} 188 h24" stroke="${o.video}" stroke-width="6" stroke-opacity="0.45"/>`, "H.264 video, 0 to 15 Mbps")}
+  ${key(192, `<path d="M${mid - 58} 188 h24" stroke="${o.video}" stroke-width="6" stroke-opacity="0.55" stroke-linecap="round"/>`, "H.264 video, 0 to 15 Mbps")}
   ${key(214, `<path d="M${mid - 58} 210.5 h24" stroke="${o.text3}"/>`, "Chrony syncs the clocks")}
   ${callout(drone, PI_POINTS[4].radio, 98, "Radio: wlan0 in bat0", -1)}
   ${callout(drone, PI_POINTS[4].soc, 286, "SoC: ROS 2 publisher, video encoder")}
@@ -148,8 +157,8 @@ export function orionTestbed(w, h) {
   let fx = 24;
   const message = fields
     .map(([name, meaning, width]) => {
-      const cell = `<rect x="${fx + 0.5}" y="${fy + 0.5}" width="${width - 1}" height="27" fill="none" stroke="${o.text3}"/>${label(fx + width / 2, fy + 18, name, { fill: o.text, anchor: "middle" })}${label(fx + width / 2, fy + 46, meaning, { fill: o.text3, anchor: "middle" })}`;
-      fx += width - 1;
+      const cell = `<rect x="${fx + 0.5}" y="${fy + 0.5}" width="${width - 5}" height="27" rx="13.5" fill="#ffffff" fill-opacity="0.1" stroke="${o.text3}" stroke-opacity="0.7"/>${label(fx + width / 2 - 2, fy + 18, name, { fill: o.text, anchor: "middle" })}${label(fx + width / 2 - 2, fy + 46, meaning, { fill: o.text3, anchor: "middle" })}`;
+      fx += width + 4;
       return cell;
     })
     .join("");
@@ -159,7 +168,7 @@ export function orionTestbed(w, h) {
   const top15 = Math.max(...ORION_BITRATES);
   const xOf = (rate) => Math.round((ruler.x0 + ((ruler.x1 - ruler.x0) * rate) / top15) * 10) / 10;
   const minor = Array.from({ length: top15 + 1 }, (_, r) => `<rect x="${xOf(r)}" y="${ruler.y - 4}" width="1" height="4" fill="${o.text3}"/>`).join("");
-  const major = ORION_BITRATES.map((rate) => `<rect data-rate="${rate}" x="${xOf(rate)}" y="${ruler.y - 14}" width="2" height="14" fill="${o.video}"/>${label(xOf(rate) + 1, ruler.y + 20, String(rate), { anchor: "middle" })}`).join("");
+  const major = ORION_BITRATES.map((rate) => `<rect data-rate="${rate}" x="${xOf(rate)}" y="${ruler.y - 14}" width="2" height="14" rx="1" fill="${o.video}"/>${label(xOf(rate) + 1, ruler.y + 20, String(rate), { anchor: "middle" })}`).join("");
 
   const bottom = `${rect(24, 328, w - 48, 1, o.rule)}
   ${text(24, 356, "One control message", { fill: o.text3, caps: true })}${message}
@@ -168,7 +177,7 @@ export function orionTestbed(w, h) {
   <g shape-rendering="crispEdges">${rect(ruler.x0, ruler.y, ruler.x1 - ruler.x0 + 2, 1, o.text3)}${minor}${major}</g>
   ${label(ruler.x0, fy + 76, "Each trial also records sequence gaps and CPU use.")}`;
 
-  return fixed(`${rect(0, 0, w, h, o.panel)}${top}${bottom}`);
+  return fixed(`${orionBackdrop(w, h)}${top}${bottom}`);
 }
 
 const NIXOS_SYSTEM = ["nix", "boot", "locale", "networking", "audio", "desktop", "users", "packages"];

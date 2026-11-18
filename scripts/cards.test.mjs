@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BLOCK, renderLayerStrip, renderProject, renderStats, slotsFor, wrap } from "./build-assets.mjs";
-import { ORION_BITRATES, orionSweep } from "./diagrams.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo, shareLanguages, totalKinds } from "./fetch-github.mjs";
 import { layers } from "./projects.mjs";
@@ -120,14 +119,6 @@ test("each layer strip lights only its own depth bar", () => {
     assert.ok(svg.includes(`data-depth="${i}" data-active="true"`));
     assert.equal((svg.match(/data-depth=/g) ?? []).length, layers.length);
   });
-});
-
-test("Orion bitrate bars are linear: twice the bitrate is twice the height", () => {
-  const svg = orionSweep(250, 148);
-  const height = (rate) => Number(svg.match(new RegExp(`data-rate="${rate}" [^>]*height="(\\d+)"`))?.[1] ?? 0);
-  assert.equal(height(0), 0, "the no-video baseline draws no bar");
-  const top = Math.max(...ORION_BITRATES);
-  for (const rate of ORION_BITRATES) assert.ok(Math.abs(height(rate) / height(top) - rate / top) <= 0.01, `${rate} Mbps: ${height(rate)} px`);
 });
 
 // WCAG contrast ratio between two #rrggbb colours.

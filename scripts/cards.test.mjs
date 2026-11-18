@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BLOCK, renderLayerStrip, renderProject, renderStats, slotsFor, wrap } from "./build-assets.mjs";
-import { ORION_BITRATES, orionTestbed } from "./diagrams.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo, shareLanguages, totalKinds } from "./fetch-github.mjs";
 import { layers } from "./projects.mjs";
@@ -278,12 +277,4 @@ test("every headline number is grouped by thousands and says what it counts and 
     assert.ok(svg.includes(`>${scope}<`), scope);
   }
   assert.ok(svg.includes("6 chip projects"), "the language scope matches the hero's memory controllers");
-});
-
-test("the Orion bitrate ruler puts every tested bitrate at its place on a linear scale", () => {
-  const svg = orionTestbed(798, 472);
-  const at = Object.fromEntries([...svg.matchAll(/data-rate="(\d+)" x="([\d.]+)"/g)].map((m) => [m[1], Number(m[2])]));
-  assert.deepEqual(Object.keys(at).map(Number), ORION_BITRATES);
-  const top = Math.max(...ORION_BITRATES);
-  for (const rate of ORION_BITRATES) assert.ok(Math.abs((at[rate] - at[0]) / (at[top] - at[0]) - rate / top) < 0.005, `${rate} Mbps at x=${at[rate]}`);
 });

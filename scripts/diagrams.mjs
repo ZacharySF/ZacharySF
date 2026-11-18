@@ -14,10 +14,21 @@ const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}"
 // down, j left and down, h up. Coordinates are millimetres; `scale` is px per mm.
 const isoAt = (ox, oy, scale) => (i, j, h = 0) => [Math.round((ox + (i - j) * scale * 0.866) * 10) / 10, Math.round((oy + (i + j) * scale * 0.5 - h * scale) * 10) / 10];
 const poly = (points, fill) => `<polygon points="${points.map(([x, y]) => `${x},${y}`).join(" ")}" fill="${fill}"/>`;
+// Orion Mesh keeps its own colours so it reads apart from the blue-on-navy figures: the green
+// boards, black header and bright sockets of a real Raspberry Pi, with the link in raspberry red.
+// The whole figure is a fixed dark panel, like a screenshot, on either page theme.
+const ORION = {
+  panel: "#0e1512",
+  text: "#eef3ee",
+  text2: "#bcc8bf",
+  text3: "#84968a", // 5.6:1 on the panel
+  link: "#f0527f",
+  hole: "#c9a24a",
+};
 const MATERIAL = {
-  pcb: [p.structure, p.silverDark, p.bg],
-  metal: [p.silverLight, p.silver, p.silverDark],
-  plastic: [p.well, p.bg, p.bg],
+  pcb: ["#2f8156", "#1e5a3c", "#143f2a"],
+  metal: ["#d9dde2", "#9ba3ad", "#5a626d"],
+  plastic: ["#262a2f", "#16191c", "#0d0f11"],
 };
 // A box standing on height h0: its top, the face towards the viewer's left (j side) and right (i side).
 function isoBox(at, [i0, j0, h0], [di, dj, dh], material) {
@@ -59,7 +70,7 @@ const PI_RADIO = { 4: [13, 15, PCB + 2], 3: [4, 11.5, PCB + 1.2] };
 
 function isoPi(at, model) {
   const parts = [...PI_PARTS[model]].sort((a, b) => a[0][0] + a[0][1] - (b[0][0] + b[0][1])); // far parts first
-  const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="2" fill="${p.silverDark}"/>`; }).join("");
+  const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="2" fill="${ORION.hole}"/>`; }).join("");
   return isoBox(at, [0, 0, 0], [85, 56, PCB], "pcb") + holes + parts.map(([[i, j], size, material]) => isoBox(at, [i, j, PCB], size, material)).join("");
 }
 
@@ -74,14 +85,14 @@ export function orionBoards(w, h) {
   const [ax, ay] = drone(...PI_RADIO[4]);
   const [bx, by] = ground(...PI_RADIO[3]);
   const mid = (ax + bx) / 2;
-  const jobs = (x, name, model, rows) => text(x, 276, name, { size: TYPE.body, weight: 600, fill: p.text }) + text(x, 294, `Raspberry Pi ${model}`, { fill: p.text3, caps: true }) + lines(x, 316, rows);
-  return `${fixed(isoPi(drone, 4) + isoPi(ground, 3))}
-  <path d="M${ax} ${ay} Q${mid} ${Math.min(ay, by) - 132} ${bx} ${by}" fill="none" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 4"/>
-  <circle cx="${ax}" cy="${ay}" r="4" fill="${p.accent}"/><circle cx="${bx}" cy="${by}" r="4" fill="${p.accent}"/>
-  ${text(mid, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: p.text, anchor: "middle" })}
-  ${text(mid, 124, "Control messages at 50 Hz", { anchor: "middle" })}${text(mid, 142, "H.264 video at 0 to 15 Mbps", { anchor: "middle" })}${text(mid, 168, "one shared channel", { fill: p.text3, caps: true, anchor: "middle" })}
+  const jobs = (x, name, model, rows) => text(x, 276, name, { size: TYPE.body, weight: 600, fill: ORION.text }) + text(x, 294, `Raspberry Pi ${model}`, { fill: ORION.text3, caps: true }) + lines(x, 316, rows, { fill: ORION.text2 });
+  return fixed(`${rect(0, 0, w, h, ORION.panel)}${isoPi(drone, 4)}${isoPi(ground, 3)}
+  <path d="M${ax} ${ay} Q${mid} ${Math.min(ay, by) - 132} ${bx} ${by}" fill="none" stroke="${ORION.link}" stroke-width="2" stroke-dasharray="6 4"/>
+  <circle cx="${ax}" cy="${ay}" r="4" fill="${ORION.link}"/><circle cx="${bx}" cy="${by}" r="4" fill="${ORION.link}"/>
+  ${text(mid, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: ORION.text, anchor: "middle" })}
+  ${text(mid, 124, "Control messages at 50 Hz", { fill: ORION.text2, anchor: "middle" })}${text(mid, 142, "H.264 video at 0 to 15 Mbps", { fill: ORION.text2, anchor: "middle" })}${text(mid, 168, "one shared channel", { fill: ORION.text3, caps: true, anchor: "middle" })}
   ${jobs(24, "Drone node", 4, ["Publishes control and streams video", "Serves the reference clock"])}
-  ${jobs(w - 24 - 208, "Ground node", 3, ["Times every control message", "Counts sequence gaps, logs CPU use"])}`;
+  ${jobs(w - 24 - 208, "Ground node", 3, ["Times every control message", "Counts sequence gaps, logs CPU use"])}`);
 }
 
 const NIXOS_SYSTEM = ["nix", "boot", "locale", "networking", "audio", "desktop", "users", "packages"];

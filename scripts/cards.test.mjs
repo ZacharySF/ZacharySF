@@ -73,7 +73,7 @@ test("wrap never exceeds the line budget and keeps every word", () => {
   assert.equal(lines.join(" "), text);
 });
 
-test("every real project summary fits its two lines and every caption fits beside its output label", () => {
+test("every real project summary fits its lines and every caption fits beside its output label", () => {
   for (const layer of layers) {
     for (const project of layer.projects) {
       const lines = wrap(project.short, BLOCK.summaryChars);
@@ -110,6 +110,17 @@ test("pictures line up with the hero's margins, and stacked thumbnails end level
       }
     }
   }
+});
+
+test("a longer summary pushes the pictures down instead of running into them", () => {
+  const shots = [{ file: "a.jpg", caption: "One" }, { file: "b.jpg", caption: "Two" }, { file: "c.jpg", caption: "Three" }];
+  const sentence = "Each word here adds to a summary that has to wrap across the column. ";
+  const two = slotsFor({ slug: "two", short: sentence.repeat(3).trim(), shots });
+  const three = slotsFor({ slug: "three", short: sentence.repeat(4).trim(), shots });
+  assert.equal(wrap(sentence.repeat(3).trim(), BLOCK.summaryChars).length, 2);
+  assert.equal(wrap(sentence.repeat(4).trim(), BLOCK.summaryChars).length, 3);
+  assert.equal(three[0].y - two[0].y, BLOCK.summaryLeading);
+  assert.equal(two[0].y, BLOCK.top);
 });
 
 test("each layer strip lights only its own depth bar", () => {

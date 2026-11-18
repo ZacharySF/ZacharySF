@@ -28,16 +28,17 @@ export function wrap(text, width) {
   return lines;
 }
 
-/** A project block: name, GPC number and role, a two-line summary, then a lead picture with two thumbnails, or one wide picture. */
+/** A project block: name, GPC number and role, a summary of two or three lines, then a lead picture with two thumbnails, or one wide picture. */
 export const BLOCK = {
-  top: 92, // first picture row, below the header
+  top: 92, // first picture row below a two-line summary
   lead: { w: 532, h: 332 },
   thumb: { w: 250, h: 148 },
   gap: 16,
   caption: 16, // baseline below a picture
   bottom: 32,
   summaryChars: 112, // one 14 px line across the column
-  summaryLines: 2,
+  summaryLines: 3,
+  summaryLeading: 20,
   outputLabel: 40, // "OUT 0" and the space after it
   captionCharWidth: 6.4, // 12 px Plex Sans, average advance
 };
@@ -60,7 +61,8 @@ export function renderLayerStrip(layer, index, count, { fonts = "" } = {}) {
 
 /** Where each of a project's pictures goes, in order: [lead, upper thumbnail, lower thumbnail] or [wide]. */
 export function slotsFor(project) {
-  const { top, lead, thumb, gap } = BLOCK;
+  const { lead, thumb, gap } = BLOCK;
+  const top = BLOCK.top + Math.max(0, wrap(project.short ?? "", BLOCK.summaryChars).length - 2) * BLOCK.summaryLeading;
   if (project.shots.length === 1) return [{ x: MARGIN, y: top, w: README_W - 2 * MARGIN, h: project.shots[0].height }];
   if (project.shots.length !== 3) throw new Error(`${project.slug}: a project shows one picture or three, not ${project.shots.length}`);
   const x = MARGIN + lead.w + gap;
@@ -84,14 +86,14 @@ export function renderProject(project, { gpc, images = {}, fonts = "" } = {}) {
   const designator = `font-family="${COND}" font-size="${TYPE.label}" letter-spacing="0.3" fill="${p.text3}"`;
   const badge = gpc === undefined ? "" : `<tspan ${designator}>GPC${gpc}</tspan>`;
   const summary = wrap(project.short, BLOCK.summaryChars)
-    .map((line, i) => `<tspan x="${MARGIN}" dy="${i ? 20 : 0}">${escapeXml(line)}</tspan>`)
+    .map((line, i) => `<tspan x="${MARGIN}" dy="${i ? BLOCK.summaryLeading : 0}">${escapeXml(line)}</tspan>`)
     .join("");
   const pictures = project.shots
     .map((shot, i) => {
       const { x, y, w, h } = slots[i];
       const clip = `clip-path="url(#s${i})"`;
       const inside = shot.diagram
-        ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}" fill="${p.surface}"/><svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${DIAGRAMS[shot.diagram](w, h)}</svg>`
+        ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}" fill="${p.surface}"/><g ${clip}><svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${DIAGRAMS[shot.diagram](w, h)}</svg></g>`
         : fixed(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}" fill="${p.surface}"/>${images[shot.file] ? `<image href="${images[shot.file]}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" ${clip}/>` : ""}`);
       return `<clipPath id="s${i}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${RADIUS.panel}"/></clipPath>${inside}<rect x="${x + 0.5}" y="${y + 0.5}" width="${w - 1}" height="${h - 1}" rx="${RADIUS.panel - 0.5}" fill="none" stroke="${p.structure}"/><text x="${x}" y="${y + h + BLOCK.caption}" font-size="${TYPE.label}"><tspan ${designator}>OUT ${i}</tspan><tspan x="${x + BLOCK.outputLabel}" fill="${p.text2}">${escapeXml(shot.caption)}</tspan></text>`;
     })

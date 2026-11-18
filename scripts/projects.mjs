@@ -30,7 +30,7 @@ export const layers = [
         shots: [
           { file: "determine-glasses.jpg", caption: "The prototype glasses at HackTX 26" },
           { file: "determine-world.jpg", caption: "Simulator with the real engine" },
-          { file: "determine-app.jpg", caption: "Desktop app, system ready" },
+          { file: "determine-site.jpg", caption: "Home page of the web app" },
         ],
       },
       {

@@ -10,47 +10,78 @@ const text = (x, y, value, { size = TYPE.label, weight = 500, fill = p.text2, an
 const lines = (x, y, rows, options) => rows.map((row, i) => text(x, y + i * 16, row, options)).join("");
 const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${rx ? ` rx="${rx}"` : ""} fill="${fill}"/>`;
 
-// A Raspberry Pi seen from above at 2 px per mm (85 x 56 mm board), 40-pin header along the top edge.
-// `model` 4 or 3 moves the parts that differ: Ethernet and USB order, the power and HDMI sockets, the SoC lid.
-function board(x, y, model) {
-  const at = (dx, dy, w, h, fill, rx = 0) => rect(x + dx, y + dy, w, h, fill, rx);
-  const pins = at(15, 1, 102, 12, p.bg) + Array.from({ length: 40 }, (_, i) => at(17 + Math.floor(i / 2) * 5, 3 + (i % 2) * 5, 3, 3, p.silverLight)).join("");
-  const holes = BOARD_HOLES.map(([cx, cy]) => `<circle cx="${x + cx}" cy="${y + cy}" r="5" fill="${p.silverDark}"/>`).join("");
-  const sockets =
-    model === 4
-      ? at(140, 6, 34, 32, p.silver) + at(140, 44, 34, 26, p.silver) + at(140, 78, 34, 26, p.silver) + at(14, 102, 18, 12, p.silver) + at(44, 104, 14, 10, p.silver) + at(70, 104, 14, 10, p.silver)
-      : at(140, 6, 34, 26, p.silver) + at(140, 40, 34, 26, p.silver) + at(140, 74, 34, 32, p.silver) + at(12, 104, 16, 10, p.silver) + at(48, 100, 30, 14, p.silver);
-  const chips =
-    model === 4
-      ? at(44, 40, 30, 30, p.silverLight) + at(84, 42, 24, 26, p.bg) + at(116, 62, 12, 12, p.bg) + at(14, 20, 24, 18, p.silver)
-      : at(44, 40, 28, 28, p.bg) + at(100, 60, 20, 20, p.bg) + at(6, 18, 4, 10, p.silverLight);
-  // Camera and display ribbon connectors, and the audio jack on the bottom edge.
-  const ribbons = at(2, 46, 6, 40, p.text3) + at(90, 78, 6, 22, p.text3) + at(100, 102, 14, 12, p.bg);
-  return `<rect x="${x}" y="${y}" width="170" height="112" rx="6" fill="${p.structure}"/>${holes}<g shape-rendering="crispEdges">${pins}${chips}${ribbons}${sockets}</g>`;
+// Isometric drawing, the same projection as the graphics card further up the page: i runs right and
+// down, j left and down, h up. Coordinates are millimetres; `scale` is px per mm.
+const isoAt = (ox, oy, scale) => (i, j, h = 0) => [Math.round((ox + (i - j) * scale * 0.866) * 10) / 10, Math.round((oy + (i + j) * scale * 0.5 - h * scale) * 10) / 10];
+const poly = (points, fill) => `<polygon points="${points.map(([x, y]) => `${x},${y}`).join(" ")}" fill="${fill}"/>`;
+const MATERIAL = {
+  pcb: [p.structure, p.silverDark, p.bg],
+  metal: [p.silverLight, p.silver, p.silverDark],
+  plastic: [p.well, p.bg, p.bg],
+};
+// A box standing on height h0: its top, the face towards the viewer's left (j side) and right (i side).
+function isoBox(at, [i0, j0, h0], [di, dj, dh], material) {
+  const [i1, j1, h1] = [i0 + di, j0 + dj, h0 + dh];
+  const [top, left, right] = MATERIAL[material];
+  return poly([at(i0, j1, h1), at(i1, j1, h1), at(i1, j1, h0), at(i0, j1, h0)], left) + poly([at(i1, j0, h1), at(i1, j1, h1), at(i1, j1, h0), at(i1, j0, h0)], right) + poly([at(i0, j0, h1), at(i1, j0, h1), at(i1, j1, h1), at(i0, j1, h1)], top);
 }
 
-// Mounting holes show the panel behind the board, so they are drawn outside the fixed hardware.
-const BOARD_HOLES = [[7, 7], [123, 7], [7, 105], [123, 105]];
-const boardHoles = (x, y) => BOARD_HOLES.map(([cx, cy]) => `<circle cx="${x + cx}" cy="${y + cy}" r="3" fill="${p.surface}"/>`).join("");
+// Raspberry Pi parts in mm on the 85 x 56 board, header along the far edge, network and USB at the right end.
+const PCB = 1.6;
+const PI_PARTS = {
+  4: [
+    [[7, 1], [51, 5, 8.5], "plastic"], // 40-pin header
+    [[7, 10], [12, 10, 2], "metal"], // wireless module
+    [[22, 25], [15, 15, 2.4], "metal"], // SoC lid
+    [[42, 26], [12, 14, 1], "plastic"], // memory
+    [[66, 2.5], [21, 16, 13.5], "metal"], // Ethernet
+    [[69, 22.5], [18, 13, 16], "metal"], // USB 3
+    [[69, 40], [18, 13, 16], "metal"], // USB 2
+    [[7, 49], [9, 8.5, 3.2], "metal"], // USB-C power
+    [[22, 50], [7, 7.5, 3], "metal"], // micro HDMI
+    [[35.5, 50], [7, 7.5, 3], "metal"], // micro HDMI
+    [[50, 44], [7, 14, 6], "plastic"], // audio jack
+  ],
+  3: [
+    [[7, 1], [51, 5, 8.5], "plastic"],
+    [[3, 9], [2, 5, 1.2], "metal"], // chip antenna
+    [[21, 24], [14, 14, 1.4], "plastic"], // SoC
+    [[52, 34], [9, 9, 1], "plastic"], // USB and Ethernet controller
+    [[69, 2], [18, 13, 16], "metal"], // USB
+    [[69, 20], [18, 13, 16], "metal"], // USB
+    [[66, 37.5], [21, 16, 13.5], "metal"], // Ethernet
+    [[6.5, 50], [8, 7.5, 3], "metal"], // micro USB power
+    [[24.5, 45], [15, 12.5, 6.5], "metal"], // HDMI
+    [[50, 44], [7, 14, 6], "plastic"],
+  ],
+};
+const PI_RADIO = { 4: [13, 15, PCB + 2], 3: [4, 11.5, PCB + 1.2] };
+
+function isoPi(at, model) {
+  const parts = [...PI_PARTS[model]].sort((a, b) => a[0][0] + a[0][1] - (b[0][0] + b[0][1])); // far parts first
+  const holes = [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]].map(([i, j]) => { const [x, y] = at(i, j, PCB); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="2" fill="${p.silverDark}"/>`; }).join("");
+  return isoBox(at, [0, 0, 0], [85, 56, PCB], "pcb") + holes + parts.map(([[i, j], size, material]) => isoBox(at, [i, j, PCB], size, material)).join("");
+}
 
 /**
- * Orion Mesh, full width: the two boards from above, the radio link between their wireless parts,
- * what travels over it, and each node's job.
+ * Orion Mesh, full width: the two boards in the page's isometric projection, the radio link arcing
+ * between their wireless parts with what it carries, and each node's job.
  */
 export function orionBoards(w, h) {
-  const [left, right, top] = [24, w - 24 - 170, 80];
-  const [radioA, radioB] = [left + 26, right + 8]; // Pi 4 wireless module, Pi 3 chip antenna
-  const jobs = (x, name, model, rows) => text(x, top + 140, name, { size: TYPE.body, weight: 600, fill: p.text }) + text(x, top + 158, `Raspberry Pi ${model}`, { fill: p.text3, caps: true }) + lines(x, top + 182, rows);
-  const note = (x, head, rows) => text(x, top + 40, head, { fill: p.text3, caps: true }) + lines(x, top + 62, rows);
-  return `${fixed(board(left, top, 4) + board(right, top, 3))}${boardHoles(left, top)}${boardHoles(right, top)}
-  <path d="M${radioA} ${top + 26} V48 H${radioB} V${top + 20}" fill="none" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 4"/>
-  <circle cx="${radioA}" cy="${top + 28}" r="4" fill="${p.accent}"/><circle cx="${radioB}" cy="${top + 22}" r="4" fill="${p.accent}"/>
-  ${text((radioA + radioB) / 2, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: p.text, anchor: "middle" })}
-  ${text(radioA + 10, 72, "wlan0", { fill: p.text3, caps: true })}${text(radioB + 10, 72, "wlan0", { fill: p.text3, caps: true })}
-  <rect x="226" y="50" width="1" height="${top - 24}" fill="${p.text3}"/>
-  ${note(226, "On the link", ["Control at 50 Hz", "H.264 video"])}${note(350, "Video load", ["0 to 15 Mbps", "in nine steps"])}${note(466, "On both nodes", ["ROS 2, CycloneDDS", "BATMAN-adv, Chrony"])}
-  ${jobs(left, "Drone node", 4, ["Publishes control at 50 Hz", "Streams H.264 at 0 to 15 Mbps", "Serves the reference clock"])}
-  ${jobs(right, "Ground node", 3, ["Times every control message", "Counts gaps in the sequence", "Logs CPU use per trial"])}`;
+  const scale = 1.9;
+  const drone = isoAt(116, 100, scale);
+  const ground = isoAt(w - 168, 100, scale);
+  const [ax, ay] = drone(...PI_RADIO[4]);
+  const [bx, by] = ground(...PI_RADIO[3]);
+  const mid = (ax + bx) / 2;
+  const jobs = (x, name, model, rows) => text(x, 276, name, { size: TYPE.body, weight: 600, fill: p.text }) + text(x, 294, `Raspberry Pi ${model}`, { fill: p.text3, caps: true }) + lines(x, 316, rows);
+  return `${fixed(isoPi(drone, 4) + isoPi(ground, 3))}
+  <path d="M${ax} ${ay} Q${mid} ${Math.min(ay, by) - 132} ${bx} ${by}" fill="none" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 4"/>
+  <circle cx="${ax}" cy="${ay}" r="4" fill="${p.accent}"/><circle cx="${bx}" cy="${by}" r="4" fill="${p.accent}"/>
+  ${text(mid, 36, "Ad-hoc Wi-Fi cell, bridged by BATMAN-adv", { fill: p.text, anchor: "middle" })}
+  ${text(mid, 124, "Control messages at 50 Hz", { anchor: "middle" })}${text(mid, 142, "H.264 video at 0 to 15 Mbps", { anchor: "middle" })}${text(mid, 168, "one shared channel", { fill: p.text3, caps: true, anchor: "middle" })}
+  ${jobs(24, "Drone node", 4, ["Publishes control and streams video", "Serves the reference clock"])}
+  ${jobs(w - 24 - 208, "Ground node", 3, ["Times every control message", "Counts sequence gaps, logs CPU use"])}`;
 }
 
 const NIXOS_SYSTEM = ["nix", "boot", "locale", "networking", "audio", "desktop", "users", "packages"];
@@ -88,50 +119,4 @@ export function nixosFlake(w, h) {
   ${text(drive, outB + 44, "External drive", { size: TYPE.body, weight: 600, fill: p.text })}${text(drive, outB + 60, "Its own root, boot and swap", { fill: p.text3 })}`;
 }
 
-// A chip-style block: silver frame, dark body.
-const die = (x, y, w, h) => `${rect(x - 2, y - 2, w + 4, h + 4, p.silver)}${rect(x, y, w, h, p.bg)}`;
-
-/**
- * MisaOS, lead slot: one imported root drawn as a sealed block. Left, the files the app sees (its own);
- * right, host locations that do not exist in its view (hatched, like the hero's fused-off cluster);
- * below, the NixOS host and the single folder a plan grants.
- */
-export function misaView(w, h) {
-  const body = { x: 16, y: 44, w: w - 32, h: 150 };
-  const tile = { w: 232, h: 24 };
-  const column = (x, head, rows, fill, granted = -1) =>
-    text(x, body.y + 22, head, { fill: p.text3, caps: true }) +
-    rows
-      .map(([path, what], i) => {
-        const y = body.y + 30 + i * (tile.h + 4);
-        return `${rect(x, y, tile.w, tile.h, fill)}${i === granted ? `<rect x="${x + 1}" y="${y + 1}" width="${tile.w - 2}" height="${tile.h - 2}" fill="none" stroke="${p.accent}" stroke-width="2"/>` : ""}${text(x + 8, y + 16, path, { fill: p.text })}${text(x + tile.w - 8, y + 16, what, { fill: p.text3, anchor: "end" })}`;
-      })
-      .join("");
-  const inside = [["/usr/bin/xclock", "declared export"], ["/lib", "its own loader"], ["/tmp", "fresh each run"], ["/mnt/share", "granted folder"]];
-  const absent = [["/nix/store", "host packages"], ["/etc/nixos", "host config"], ["/home/you", "your files"], ["network", "no connection"]];
-  const host = { y: 244, h: 72 };
-  const grant = body.x + 12 + 172; // trace from the granted tile down to the host
-  return `${text(body.x, 28, "Debian root, sealed", { size: TYPE.body, weight: 600, fill: p.text })}
-  ${fixed(`<defs><pattern id="absent" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="${p.surface}"/><path d="M0 4 L4 0" stroke="${p.structure}"/></pattern></defs>${die(body.x, body.y, body.w, body.h)}${column(body.x + 12, "Inside: the image's own files", inside, p.well, 3)}${column(body.x + body.w - 12 - tile.w, "Absent from its view", absent, "url(#absent)")}
-  ${rect(body.x, host.y, body.w, host.h, p.structure, 2)}${text(body.x + 12, host.y + 28, "NixOS host", { size: TYPE.body, weight: 600, fill: p.text })}${text(body.x + 12, host.y + 48, "Keeps its boot, services and accounts", { fill: p.text2 })}
-  ${rect(grant - 7, host.y, 16, 8, p.silverLight)}${text(grant + 20, host.y + 28, "/home/you/share", { fill: p.text })}`)}
-  <rect x="${grant}" y="${body.y + 30 + 3 * (tile.h + 4) + tile.h}" width="2" height="${host.y - (body.y + 30 + 3 * (tile.h + 4) + tile.h)}" fill="${p.accent}"/>
-  ${text(grant + 14, host.y - 16, "The one host path the plan grants", { fill: p.text2 })}`;
-}
-
-/** MisaOS, thumbnail: the four checks an image passes before it may launch, as test points on one trace. */
-export function misaChecks(w, h) {
-  const stops = ["Lock", "Approve", "Verify", "Qualify"];
-  const pads = stops.map((name, i) => `${rect(20 + i * 62, 62, 12, 12, p.accent)}${text(26 + i * 62, 98, name, { fill: p.text3, caps: true, anchor: "middle" })}`).join("");
-  return `${text(12, 28, "Before anything runs", { weight: 600, fill: p.text })}<g shape-rendering="crispEdges">${rect(20, 67, 198, 2, p.text3)}${pads}</g>${text(12, 130, "No install script ever runs", { fill: p.text2 })}`;
-}
-
-/** MisaOS, thumbnail: a glibc root and a musl root seated side by side on the one host. */
-export function misaRoots(w, h) {
-  const chip = (x, name, libc) =>
-    `${die(x, 46, 104, 48)}${text(x + 10, 66, name, { weight: 600, fill: p.text })}${text(x + 10, 84, libc, { fill: p.text3, caps: true })}${Array.from({ length: 8 }, (_, i) => rect(x + 10 + i * 12, 96, 4, 8, p.silverLight)).join("")}`;
-  return `${text(12, 28, "Two Linux families, one host", { weight: 600, fill: p.text })}
-  ${fixed(`<g shape-rendering="crispEdges">${rect(12, 104, w - 24, 28, p.structure)}${chip(14, "Debian", "glibc")}${chip(w - 14 - 104, "Void", "musl")}</g>${text(w / 2, 123, "NixOS host", { fill: p.text, anchor: "middle" })}`)}`;
-}
-
-export const DIAGRAMS = { orionBoards, nixosFlake, misaView, misaChecks, misaRoots };
+export const DIAGRAMS = { orionBoards, nixosFlake };

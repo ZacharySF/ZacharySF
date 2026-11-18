@@ -10,28 +10,33 @@ const text = (x, y, value, { size = TYPE.label, weight = 500, fill = p.text2, an
 const lines = (x, y, rows, options) => rows.map((row, i) => text(x, y + i * 16, row, options)).join("");
 const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${rx ? ` rx="${rx}"` : ""} fill="${fill}"/>`;
 
-// Orion Mesh is drawn as a block diagram in the manner of NVIDIA's module and software-stack figures:
-// flat filled tiles with their names inside, one container per node, a bus where the two meet, and a
-// key for what the fills mean. The colours are its own (cobalt and sky blue with amber, a darker and a
-// lighter half) so it reads apart from the other figures, and it stays as drawn on either page theme.
+// Orion Mesh is drawn as a layered block diagram in the manner of NVIDIA's module and software-stack
+// figures: tiles with their names inside, one container per node, rows named once in a gutter, a bus
+// where the two radios meet, and a key for the fills. Its colours are its own, a dusk palette of
+// aubergine, muted violet and one dusty-rose accent with two flat moons behind the link, so it reads
+// apart from the other figures. It stays as drawn on either page theme.
 const ORION = {
-  left: "#0f2257", // the drone's half of the panel
-  right: "#1c4496", // the ground's half
-  boxLeft: "#182f72",
-  boxRight: "#2a57b8",
-  ink: "#0e1d4a", // text on light tiles; also the darkest tile
-  white: "#ffffff",
-  soft: "#cfe0f9", // secondary text on the blue grounds (>= 7:1)
-  own: "#f2bd4b", // written for Orion Mesh
-  theirs: "#a9c8f5", // third-party software
-  net: "#dbe8fc", // network interfaces
-  metal: "#52648f", // hardware
+  ground: "#17111f",
+  box: "#1f1829",
+  line: "#3b2f4a", // keylines and tile edges
+  tile: "#31273f", // third-party software
+  tileEdge: "#55466a",
+  net: "#473a5b", // network interfaces
+  deep: "#100b16", // the system image, chip bodies
+  metal: "#272031", // hardware
+  core: "#5f5075",
+  rose: "#d7a79c", // written for Orion Mesh, and what crosses the link
+  ink: "#1a1322", // text on rose
+  white: "#f3eef8",
+  soft: "#cdc3db", // 10:1 on the ground
+  dim: "#9385a6", // gutter labels, 5.4:1 on the ground
 };
 const ORION_BITRATES = [0, 1, 2, 4, 6, 8, 10, 12, 15];
 const ORION_NODES = [
   { name: "Drone node", board: "Raspberry Pi 4", soc: "BCM2711, 4 cores", own: ["control_pub", "video_tx"] },
   { name: "Ground node", board: "Raspberry Pi 3", soc: "BCM2837, 4 cores", own: ["control_sub", "video_rx", "cpu_log"] },
 ];
+const ORION_ROWS = ["Programs", "Software", "Mesh", "Radio", "System", "Board"];
 
 /**
  * Orion Mesh, full width: each node's stack from its benchmark programs down to the board, the one
@@ -40,51 +45,64 @@ const ORION_NODES = [
  */
 export function orionTestbed(w, h) {
   const o = ORION;
-  const tile = (x, y, width, name, fill, ink = o.ink, height = 28) => `${rect(x, y, width, height, fill, 2)}${text(x + width / 2, y + height / 2 + 4, name, { fill: ink, anchor: "middle" })}`;
+  const KIND = {
+    own: { fill: o.rose, ink: o.ink },
+    theirs: { fill: o.tile, edge: o.tileEdge, ink: o.soft },
+    net: { fill: o.net, ink: o.white },
+    system: { fill: o.deep, edge: o.line, ink: o.soft },
+    metal: { fill: o.metal, edge: o.line, ink: o.soft },
+  };
+  const tile = (x, y, width, name, kind, height = 28) => {
+    const { fill, edge, ink } = KIND[kind];
+    return `${rect(x, y, width, height, fill, 2)}${edge ? `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="1.5" fill="none" stroke="${edge}"/>` : ""}${text(x + width / 2, y + height / 2 + 4, name, { fill: ink, anchor: "middle" })}`;
+  };
   // Tiles of the given widths (or equal widths) across `span`, 8 px apart.
-  const row = (x, y, span, names, fill, widths, ink) => {
+  const row = (x, y, span, names, kind, widths) => {
     const each = widths ?? names.map(() => (span - 8 * (names.length - 1)) / names.length);
     let at = x;
-    return names.map((name, i) => { const out = tile(Math.round(at), y, Math.round(each[i]), name, fill, ink); at += each[i] + 8; return out; }).join("");
+    return names.map((name, i) => { const out = tile(Math.round(at), y, Math.round(each[i]), name, kind); at += each[i] + 8; return out; }).join("");
   };
-  const box = { w: 314, pad: 12, y: 24, h: 296 };
-  const node = (x, { name, board, soc, own }, fill) => {
+  const box = { w: 272, pad: 12, y: 24, h: 288 };
+  const rowY = (i) => box.y + 40 + i * 36;
+  const node = (x, { name, board, soc, own }) => {
     const [ix, span] = [x + box.pad, box.w - 2 * box.pad];
-    const chip = { x: ix, y: box.y + 220, size: 60 };
-    const cores = [0, 1, 2, 3].map((k) => rect(chip.x + 8 + (k % 2) * 24, chip.y + 8 + Math.floor(k / 2) * 24, 20, 20, o.metal)).join("");
-    return `${rect(x, box.y, box.w, box.h, fill, 4)}
-    ${text(ix, box.y + 26, name, { size: TYPE.body, weight: 600, fill: o.white })}${text(x + box.w - box.pad, box.y + 26, board, { fill: o.soft, anchor: "end" })}
-    ${row(ix, box.y + 40, span, own, o.own)}
-    ${row(ix, box.y + 76, span, ["ROS 2", "CycloneDDS", "ffmpeg", "Chrony"], o.theirs, [50, 88, 62, 66])}
-    ${tile(ix, box.y + 112, span, "bat0, BATMAN-adv mesh", o.net)}
-    ${tile(ix, box.y + 148, span, "wlan0, ad-hoc Wi-Fi", o.net)}
-    ${tile(ix, box.y + 184, span, "NixOS image, built from one flake", o.ink, o.white)}
-    ${rect(chip.x, chip.y, chip.size, chip.size, o.ink, 2)}${cores}
-    ${tile(ix + 72, chip.y, span - 72, soc, o.metal, o.white, 26)}
-    ${row(ix + 72, chip.y + 34, span - 72, ["Wi-Fi radio", "microSD", "40-pin"], o.metal, null, o.white).replaceAll('height="28"', 'height="26"')}`;
+    const chip = { x: ix, y: rowY(5) + 4, size: 52 };
+    const cores = [0, 1, 2, 3].map((k) => rect(chip.x + 8 + (k % 2) * 20, chip.y + 8 + Math.floor(k / 2) * 20, 16, 16, o.core)).join("");
+    return `${rect(x, box.y, box.w, box.h, o.box, 4)}<rect x="${x + 0.5}" y="${box.y + 0.5}" width="${box.w - 1}" height="${box.h - 1}" rx="3.5" fill="none" stroke="${o.line}"/>
+    ${text(ix, box.y + 26, name, { size: TYPE.body, weight: 600, fill: o.white })}${text(x + box.w - box.pad, box.y + 26, board, { fill: o.dim, anchor: "end" })}
+    ${row(ix, rowY(0), span, own, "own")}
+    ${row(ix, rowY(1), span, ["ROS 2", "CycloneDDS", "ffmpeg", "Chrony"], "theirs", [42, 78, 52, 52])}
+    ${tile(ix, rowY(2), span, "bat0, BATMAN-adv", "net")}
+    ${tile(ix, rowY(3), span, "wlan0, ad-hoc Wi-Fi", "net")}
+    ${tile(ix, rowY(4), span, "NixOS image from one flake", "system")}
+    ${rect(chip.x, chip.y, chip.size, chip.size, o.deep, 2)}<rect x="${chip.x + 0.5}" y="${chip.y + 0.5}" width="${chip.size - 1}" height="${chip.size - 1}" rx="1.5" fill="none" stroke="${o.line}"/>${cores}
+    ${tile(ix + 60, chip.y, span - 60, soc, "metal", 24)}
+    ${row(ix + 60, chip.y + 28, span - 60, ["Wi-Fi", "microSD", "40-pin"], "metal").replaceAll('height="28"', 'height="24"').replaceAll('height="27"', 'height="23"')}`;
   };
-  const [lx, rx] = [24, w - 24 - box.w];
+  const [lx, rx] = [108, w - 24 - box.w];
   const [gapL, gapR] = [lx + box.w, rx];
-  const mid = w / 2;
-  // A stream from the drone's programs to the ground's: a line with an arrowhead, named above it.
-  const stream = (y, name) => `${rect(gapL, y - 1, gapR - gapL - 8, 2, o.own)}<path d="M${gapR} ${y} l-10 -5 v10 z" fill="${o.own}"/>${text(mid, y - 8, name, { fill: o.white, anchor: "middle" })}`;
+  const mid = (gapL + gapR) / 2;
+  const gutter = ORION_ROWS.map((name, i) => text(lx - 16, rowY(i) + (i === 5 ? 34 : 18), name, { fill: o.dim, caps: true, anchor: "end" })).join("");
+  // A stream from the drone's programs to the ground's: a hairline with an arrowhead, named above it.
+  const stream = (y, name) => `${rect(gapL + 6, y, gapR - gapL - 18, 1, o.rose)}<path d="M${gapR - 6} ${y + 0.5} l-8 -4 v8 z" fill="${o.rose}"/>${text(mid, y - 7, name, { fill: o.soft, anchor: "middle" })}`;
 
-  const by = 356;
+  const by = 376;
   const fields = [["header.stamp", "send time", 112], ["header.frame_id", "sequence number", 128], ["twist", "synthetic command", 58]];
-  let fx = lx;
-  const message = fields.map(([name, meaning, width]) => { const out = tile(fx, by, width, name, o.net) + text(fx, by + 46, meaning, { fill: o.soft }); fx += width + 8; return out; }).join("");
-  const key = [["Written for Orion Mesh", o.own], ["Third-party software", o.theirs], ["Hardware", o.metal]];
-  let kx = lx;
-  const legend = key.map(([name, fill]) => { const out = rect(kx, h - 34, 12, 12, fill, 2) + text(kx + 18, h - 24, name, { fill: o.soft }); kx += 18 + name.length * 6.3 + 20; return out; }).join("");
+  let fx = 24;
+  const message = fields.map(([name, meaning, width]) => { const out = tile(fx, by, width, name, "theirs") + text(fx, by + 46, meaning, { fill: o.dim }); fx += width + 8; return out; }).join("");
+  const key = [["Written for Orion Mesh", "own"], ["Third-party software", "theirs"], ["Hardware", "metal"]];
+  let kx = 24;
+  const legend = key.map(([name, kind]) => { const { fill, edge } = KIND[kind]; const out = `${rect(kx, h - 34, 12, 12, fill, 2)}${edge ? `<rect x="${kx + 0.5}" y="${h - 33.5}" width="11" height="11" rx="1.5" fill="none" stroke="${edge}"/>` : ""}${text(kx + 18, h - 24, name, { fill: o.dim })}`; kx += 18 + name.length * 6.3 + 20; return out; }).join("");
 
-  return fixed(`<defs><pattern id="orionWeave" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="${o.white}" fill-opacity="0.05"/></pattern></defs>
-  ${rect(0, 0, mid, h, o.left)}${rect(mid, 0, w - mid, h, o.right)}${rect(0, 0, w, h, "url(#orionWeave)")}
-  ${node(lx, ORION_NODES[0], o.boxLeft)}${node(rx, ORION_NODES[1], o.boxRight)}
-  ${stream(box.y + 58, "control, 50 Hz")}${stream(box.y + 100, "video, 0 to 15 Mbps")}
-  ${tile(gapL, box.y + 148, gapR - gapL, "one channel", o.own)}
-  ${text(lx, by - 12, "One control message", { weight: 600, fill: o.white })}${message}
-  ${text(rx, by - 12, "Video load per trial, Mbps", { weight: 600, fill: o.white })}${row(rx, by, box.w, ORION_BITRATES.map(String), o.theirs)}
-  ${text(rx, by + 46, "Each trial also records sequence gaps and CPU use.", { fill: o.soft })}
+  return fixed(`${rect(0, 0, w, h, o.ground)}
+  <circle cx="${mid}" cy="150" r="128" fill="${o.rose}" fill-opacity="0.07"/><circle cx="${mid + 30}" cy="266" r="12" fill="${o.deep}"/>
+  ${gutter}${node(lx, ORION_NODES[0])}${node(rx, ORION_NODES[1])}
+  ${stream(rowY(0) + 20, "control, 50 Hz")}${stream(rowY(1) + 20, "video, 0 to 15 Mbps")}
+  ${tile(gapL, rowY(3), gapR - gapL, "one channel", "own")}
+  ${rect(24, 336, w - 48, 1, o.line)}
+  ${text(24, by - 12, "One control message", { fill: o.dim, caps: true })}${message}
+  ${text(rx, by - 12, "Video load per trial, Mbps", { fill: o.dim, caps: true })}${row(rx, by, box.w, ORION_BITRATES.map(String), "theirs", ORION_BITRATES.map(() => 24))}
+  ${text(rx, by + 46, "Every trial also records gaps and CPU use.", { fill: o.dim })}
   ${legend}${text(w - 24, h - 24, "Latency = ground receive time - send time", { fill: o.soft, anchor: "end" })}`);
 }
 

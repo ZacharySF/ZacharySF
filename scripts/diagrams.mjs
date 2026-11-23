@@ -10,31 +10,31 @@ const text = (x, y, value, { size = TYPE.label, weight = 500, fill = p.text2, an
 const lines = (x, y, rows, options) => rows.map((row, i) => text(x, y + i * 16, row, options)).join("");
 const rect = (x, y, w, h, fill, rx = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${rx ? ` rx="${rx}"` : ""} fill="${fill}"/>`;
 
-// Orion Mesh is drawn as a cyanotype blueprint sheet: both boards in orthographic top view (drone
-// above, ground below, each turned so its radio faces the middle), dashed leaders from each radio to
-// its network stack, the two stacks joined across one IBSS cell by antenna symbols, the trial schedule
-// on the right and a title strip along the bottom. The sheet is drawn hardware and keeps its colours on
-// the light page. Board outline and mounting holes are from the Raspberry Pi mechanical drawings; part
-// placements follow them closely enough to read.
-const BP = { sheet: p.ramp[0], mid: p.ramp[1], ink2: p.ramp[2], ink: p.ramp[3], white: p.text };
+// Orion Mesh is drawn as the KiCad PCB editor with both boards open as footprints in KiCad's default
+// layer colours: copper pads, courtyards, silkscreen designators, edge cuts and the keep-out under the
+// drone's trace antenna. The drone (turned 180 degrees) and the ground board face each other radio to
+// radio, and the bat0 net is highlighted as one ratsnest line between them. The side panel lists the
+// layers and the net classes of a trial, the bottom panel the selected net. The window is drawn
+// hardware and keeps its colours on the light page. Board outline and mounting holes are from the
+// Raspberry Pi mechanical drawings; part placements follow them closely enough to read.
+const KICAD = {
+  bg: "#001023", fcu: "#c83434", bcu: "#4d7fc4", fsilk: "#f2eda1", bsilk: "#e8b2a7", fcrt: "#ff26e2", bcrt: "#26e9ff",
+  fab: "#afafaf", edge: "#d0d2cd", pth: "#e3b72e", hole: "#000814", rats: "#f4f4f4", grid: "#16294a",
+};
 const r2 = (v) => Math.round(v * 100) / 100;
 const hp = (v) => Math.round(v - 0.5) + 0.5; // centre of a 1 px line
 const ip = Math.round;
-const bpText = (x, y, value, { sans = false, size = TYPE.label, fill = BP.ink, anchor = "start", rot = 0, attrs = "" } = {}) =>
-  `<text x="${r2(x)}" y="${r2(y)}" font-family="${sans ? SANS : COND}" font-size="${size}" font-weight="${sans ? 600 : 500}" fill="${fill}"${anchor === "start" ? "" : ` text-anchor="${anchor}"`}${rot ? ` transform="rotate(${rot} ${r2(x)} ${r2(y)})"` : ""}${attrs}>${escapeXml(value)}</text>`;
-const line = (x1, y1, x2, y2, stroke, sw = 1, extra = "") => `<line x1="${r2(x1)}" y1="${r2(y1)}" x2="${r2(x2)}" y2="${r2(y2)}" stroke="${stroke}" stroke-width="${sw}"${extra}/>`;
-const hline = (x1, x2, y, stroke, sw = 1) => line(x1, hp(y), x2, hp(y), stroke, sw);
+const kText = (x, y, value, { sans = false, fill = p.text2, anchor = "start", rot = 0, attrs = "" } = {}) =>
+  `<text x="${r2(x)}" y="${r2(y)}" font-family="${sans ? SANS : COND}" font-size="${sans ? TYPE.body : TYPE.label}" font-weight="${sans ? 600 : 500}" fill="${fill}"${anchor === "start" ? "" : ` text-anchor="${anchor}"`}${rot ? ` transform="rotate(${rot} ${r2(x)} ${r2(y)})"` : ""}${attrs}>${escapeXml(value)}</text>`;
+const line = (x1, y1, x2, y2, stroke, extra = "") => `<line x1="${r2(x1)}" y1="${r2(y1)}" x2="${r2(x2)}" y2="${r2(y2)}" stroke="${stroke}" stroke-width="1"${extra}/>`;
+const hline = (x1, x2, y, stroke) => line(x1, hp(y), x2, hp(y), stroke);
 const vline = (x, y1, y2, stroke) => line(hp(x), y1, hp(x), y2, stroke);
-const path = (d, stroke, fill = "none", extra = "") => `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="1"${extra}/>`;
-const circle = (cx, cy, r, stroke, fill = "none") => `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
-// Pixel box [x, x + w) x [y, y + h) with a crisp 1 px (box1) or 2 px (box2) stroke inside it.
-function box1(x, y, w, h, stroke, fill = "none", extra = "") {
+const fillRect = (x, y, w, h, fill) => `<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" fill="${fill}"/>`;
+const dot = (cx, cy, r, fill) => `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="${fill}"/>`;
+// Pixel box [x, x + w) x [y, y + h) with a crisp 1 px stroke inside it.
+function box1(x, y, w, h, stroke, extra = "") {
   const [x0, y0, x1, y1] = [ip(x), ip(y), ip(x + w), ip(y + h)];
-  return `<rect x="${x0 + 0.5}" y="${y0 + 0.5}" width="${Math.max(0, x1 - x0 - 1)}" height="${Math.max(0, y1 - y0 - 1)}" fill="${fill}" stroke="${stroke}"${extra}/>`;
-}
-function box2(x, y, w, h, stroke, fill = "none", rx = 0) {
-  const [x0, y0, x1, y1] = [ip(x), ip(y), ip(x + w), ip(y + h)];
-  return `<rect x="${x0 + 1}" y="${y0 + 1}" width="${x1 - x0 - 2}" height="${y1 - y0 - 2}"${rx ? ` rx="${rx}"` : ""} fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+  return `<rect x="${x0 + 0.5}" y="${y0 + 0.5}" width="${Math.max(0, x1 - x0 - 1)}" height="${Math.max(0, y1 - y0 - 1)}" fill="none" stroke="${stroke}"${extra}/>`;
 }
 // Filled arrowhead with its tip at (x, y), pointing along angle a.
 function arrow(x, y, a, fill, len = 8, half = 2.5) {
@@ -43,7 +43,6 @@ function arrow(x, y, a, fill, len = 8, half = 2.5) {
   return `<path d="M${r2(x)} ${r2(y)}L${r2(bx - s * half)} ${r2(by + c * half)}L${r2(bx + s * half)} ${r2(by - c * half)}Z" fill="${fill}"/>`;
 }
 const DASH_HIDDEN = ` stroke-dasharray="4 3"`;
-const DASH_CENTRE = ` stroke-dasharray="12 3 2 3"`;
 
 // Boards in mm, top view: 40-pin header along the top long edge, USB/Ethernet at x = 85, microSD under x = 0.
 const BOARD = { w: 85, h: 56, holes: [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]] };
@@ -87,172 +86,178 @@ const PI3 = [
   { ref: "", k: "chipant", x: 1, y: 6, w: 3, h: 8 },
 ];
 
-// Top view at (ox, oy), s px per mm, turned 180 degrees so the radio (at x = 0) faces the sheet's middle.
-function view(ox, oy, s) {
-  const pt = (x, y) => [ox + (BOARD.w - x) * s, oy + (BOARD.h - y) * s];
-  const box = ({ x, y, w, h }) => ({ x: ox + (BOARD.w - x - w) * s, y: oy + (BOARD.h - y - h) * s, w: w * s, h: h * s });
-  return { s, pt, box, center: (part) => { const b = box(part); return [b.x + b.w / 2, b.y + b.h / 2]; } };
+// Top view at (ox, oy), s px per mm; rot turns it 180 degrees so the drone's radio (at x = 0) faces the ground board.
+function view(ox, oy, s, rot) {
+  const pt = (x, y) => (rot ? [ox + (BOARD.w - x) * s, oy + (BOARD.h - y) * s] : [ox + x * s, oy + y * s]);
+  const box = ({ x, y, w, h }) => (rot ? { x: ox + (BOARD.w - x - w) * s, y: oy + (BOARD.h - y - h) * s, w: w * s, h: h * s } : { x: ox + x * s, y: oy + y * s, w: w * s, h: h * s });
+  return { ox, oy, s, rot, pt, box, center: (part) => { const b = box(part); return [b.x + b.w / 2, b.y + b.h / 2]; } };
 }
 
-function boardTop(parts, v) {
-  const { ink, ink2, sheet } = BP;
+// One board as its KiCad footprints: B.Cu ground pour, courtyards, silkscreen, pads, holes, edge cuts, designators.
+function pcbFootprints(parts, v, name) {
+  const K = KICAD;
+  const pad = (x, y, r, fill = K.pth, hole = 0.45) => { const [cx, cy] = v.pt(x, y); return dot(cx, cy, r * v.s, fill) + (hole ? dot(cx, cy, hole * v.s, K.hole) : ""); };
+  const smd = (x, y, w, h, fill = K.fcu) => { const b = v.box({ x, y, w, h }); return fillRect(b.x, b.y, Math.max(1, b.w), Math.max(1, b.h), fill); };
+  const outline = (part, stroke, extra = "") => { const b = v.box(part); return box1(b.x, b.y, b.w, b.h, stroke, extra); };
+  const onBoard = ({ x, y, w, h }) => { const [x0, y0] = [Math.max(x, 0), Math.max(y, 0)]; return { x: x0, y: y0, w: Math.min(x + w, BOARD.w) - x0, h: Math.min(y + h, BOARD.h) - y0 }; };
   const b = v.box({ x: 0, y: 0, w: BOARD.w, h: BOARD.h });
-  let o = box2(b.x, b.y, b.w, b.h, ink, sheet, ip(3 * v.s));
-  for (const part of parts.filter((q) => q.k === "card")) { const q = v.box(part); o += box1(q.x, q.y, q.w, q.h, ink, sheet); }
-  for (const part of parts.filter((q) => q.side !== "bot")) {
-    const q = v.box(part);
-    if (part.k === "pcbant") {
-      // PCB trace antenna: a meander inside the part box
+  const zone = v.box({ x: 0.5, y: 0.5, w: BOARD.w - 1, h: BOARD.h - 1 });
+  let o = `<rect x="${r2(zone.x)}" y="${r2(zone.y)}" width="${r2(zone.w)}" height="${r2(zone.h)}" rx="${r2(2.5 * v.s)}" fill="${K.bcu}" fill-opacity="0.16"/>`;
+  for (const part of parts) {
+    const { k, x, y, w, h } = part;
+    if (k === "card") { o += outline(part, K.fab); continue; }
+    if (k === "barrel") continue;
+    const bot = part.side === "bot";
+    if (k !== "pcbant") o += outline({ x: x - 0.5, y: y - 0.5, w: w + 1, h: h + 1 }, bot ? K.bcrt : K.fcrt);
+    if (!["soc", "ic", "pcbant", "chipant", "shield"].includes(k)) o += outline(onBoard(part), bot ? K.bsilk : K.fsilk);
+    if (k === "hdr") {
+      for (let i = 0; i < 20; i++) for (let j = 0; j < 2; j++) {
+        const [px, py] = [8.37 + 2.54 * i, 2.23 + 2.54 * j];
+        o += i || j ? pad(px, py, 0.85) : smd(px - 0.85, py - 0.85, 1.7, 1.7, K.pth) + dot(...v.pt(px, py), 0.45 * v.s, K.hole);
+      }
+    } else if (k === "usb") {
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) o += pad(x + 3 + j * 2.5, y + 3.3 + i * 2.2, 0.6, K.pth, 0.3);
+      o += pad(x + 9, y + 0.9, 1.0) + pad(x + 9, y + h - 0.9, 1.0);
+    } else if (k === "eth") {
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) o += pad(x + 3 + j * 2.2, y + 3.5 + i * 2.6 + j * 1.3, 0.6, K.pth, 0.3);
+      o += pad(x + 10.5, y + 2.6, 1.6, K.hole, 0) + pad(x + 10.5, y + h - 2.6, 1.6, K.hole, 0);
+      o += pad(x + 14, y + 0.9, 1.0) + pad(x + 14, y + h - 0.9, 1.0);
+    } else if (k === "usbc" || k === "hdmi" || k === "usbm") {
+      const m = k === "hdmi" && w > 10 ? 12 : 8;
+      for (let i = 0; i < m; i++) o += smd(x + 1 + ((w - 2.4) * i) / (m - 1), y + 0.4, 0.4, 1.4);
+      o += pad(x + 0.4, y + 3, 0.7, K.pth, 0.35) + pad(x + w - 0.4, y + 3, 0.7, K.pth, 0.35);
+    } else if (k === "audio") {
+      o += smd(x - 0.6, y + 1.5, 1.4, 1.8) + smd(x + w - 0.8, y + 1.5, 1.4, 1.8) + smd(x + w - 0.8, y + 6.5, 1.4, 1.8);
+      o += pad(x + w / 2, y + 3, 0.6, K.hole, 0) + pad(x + w / 2, y + 9, 0.6, K.hole, 0);
+    } else if (k === "ffc") {
+      for (let i = 0; i < 15; i++) o += smd(x + 0.3, y + 2 + ((h - 4.4) * i) / 14, 1.2, 0.4);
+    } else if (k === "soc" || (k === "ic" && w >= 11)) {
+      // BGA: a grid of 2 px balls in one path
+      const m = k === "soc" ? 11 : 8, pitch = (w - 2.5) / (m - 1);
+      let d = "";
+      for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
+        const [cx, cy] = v.pt(x + 1.25 + i * pitch, y + 1.25 + j * pitch);
+        d += `M${r2(cx - 1)} ${r2(cy - 1)}h2v2h-2z`;
+      }
+      o += `<path d="${d}" fill="${bot ? K.bcu : K.fcu}"/>` + outline(part, bot ? K.bsilk : K.fsilk);
+    } else if (k === "ic" || k === "shield") {
+      const m = k === "shield" ? 6 : 4;
+      for (let i = 0; i < m; i++) {
+        const f = (i + 0.5) / m;
+        o += smd(x + f * w - 0.3, y - 0.2, 0.6, 1.0) + smd(x + f * w - 0.3, y + h - 0.8, 0.6, 1.0);
+        o += smd(x - 0.2, y + f * h - 0.3, 1.0, 0.6) + smd(x + w - 0.8, y + f * h - 0.3, 1.0, 0.6);
+      }
+      o += outline(part, K.fsilk);
+    } else if (k === "pcbant") {
+      // keep-out rule area under the trace antenna (hatched), then the copper meander
+      const ka = v.box({ x: 0.3, y: 5.2, w: 5.6, h: 10.6 });
+      let hatch = "";
+      for (let t = -ka.h; t < ka.w; t += 5) hatch += `M${r2(ka.x + t)} ${r2(ka.y + ka.h)}l${r2(ka.h)} ${r2(-ka.h)}`;
+      const id = `orion-keepout-${name}`;
+      o += `<clipPath id="${id}"><rect x="${r2(ka.x)}" y="${r2(ka.y)}" width="${r2(ka.w)}" height="${r2(ka.h)}"/></clipPath>`;
+      o += `<g clip-path="url(#${id})" stroke-opacity="0.45"><path d="${hatch}" fill="none" stroke="${K.fcu}" stroke-width="1"/></g>` + box1(ka.x, ka.y, ka.w, ka.h, K.fcu, DASH_HIDDEN);
       const pts = [];
       for (let i = 0; i <= 5; i++) {
-        const y = part.y + (part.h * i) / 5;
-        pts.push([i % 2 ? part.x + part.w : part.x, y]);
-        if (i < 5) pts.push([i % 2 ? part.x + part.w : part.x, y + part.h / 5]);
+        const yy = y + (h * i) / 5;
+        pts.push([i % 2 ? x + w : x, yy]);
+        if (i < 5) pts.push([i % 2 ? x + w : x, yy + h / 5]);
       }
-      o += path(`M${pts.map(([x, y]) => v.pt(x, y).map(r2).join(" ")).join("L")}`, ink);
-      continue;
+      o += `<path d="M${pts.map(([px, py]) => v.pt(px, py).map(r2).join(" ")).join("L")}" fill="none" stroke="${K.fcu}" stroke-width="1.5"/>`;
+    } else if (k === "chipant") {
+      o += smd(x, y, w, 1.6) + smd(x, y + h - 1.6, w, 1.6) + outline(part, K.fab);
+    } else if (k === "sd") {
+      for (let i = 0; i < 8; i++) o += smd(x + 11.5, y + 2.5 + i * 1.1, 1.6, 0.6, K.bcu);
+      o += smd(x + 1, y - 0.4, 1.6, 1.2, K.bcu) + smd(x + 1, y + h - 0.8, 1.6, 1.2, K.bcu);
     }
-    o += box1(q.x, q.y, q.w, q.h, ink, sheet);
-    if (part.k === "hdr") {
-      const r = Math.max(0.8, 0.32 * v.s);
-      for (let i = 0; i < 20; i++) for (let j = 0; j < 2; j++) {
-        const [cx, cy] = v.pt(8.37 + 2.54 * i, 2.23 + 2.54 * j);
-        o += i === 0 && j === 0 ? `<rect x="${r2(cx - r)}" y="${r2(cy - r)}" width="${r2(2 * r)}" height="${r2(2 * r)}" fill="${ink2}"/>` : `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="${ink2}"/>`;
-      }
-    }
-    if (part.k === "soc") o += box1(q.x + 0.12 * q.w, q.y + 0.12 * q.h, 0.76 * q.w, 0.76 * q.h, ink);
-    if (part.k === "usb" || part.k === "eth") o += vline(v.box({ x: BOARD.w + 0.5, y: 0, w: 0.01, h: 0 }).x, ip(q.y) + 1, ip(q.y + q.h) - 1, ink);
-    if (part.k === "ffc") o += vline(v.box({ x: part.x + part.w * 0.55, y: 0, w: 0.01, h: 0 }).x, ip(q.y) + 1, ip(q.y + q.h) - 1, ink);
   }
-  for (const part of parts.filter((q) => q.side === "bot" && q.k !== "card")) { const q = v.box(part); o += box1(q.x, q.y, q.w, q.h, ink2, "none", DASH_HIDDEN); }
-  const hr = 1.35 * v.s;
-  for (const [hx, hy] of BOARD.holes) {
-    const [cx, cy] = v.pt(hx, hy);
-    o += circle(cx, cy, hr, ink, sheet) + line(cx - hr - 3, cy, cx + hr + 3, cy, ink2) + line(cx, cy - hr - 3, cx, cy + hr + 3, ink2);
-  }
+  // mounting holes: 6 mm pad, 2.7 mm drill
+  for (const [hx, hy] of BOARD.holes) o += pad(hx, hy, 3.0, K.pth, 1.35);
+  o += `<rect x="${hp(b.x)}" y="${hp(b.y)}" width="${ip(b.w) - 1}" height="${ip(b.h) - 1}" rx="${r2(3 * v.s)}" fill="none" stroke="${K.edge}"/>`;
+  // designators on F.Silkscreen / B.Silkscreen; BGA ones get a halo so they read over the balls
   for (const part of parts.filter((q) => q.ref && !q.nl)) {
-    const [cx, cy] = part.lp ? v.pt(...part.lp) : v.center(part);
-    o += bpText(cx, cy + 4, part.ref, { anchor: "middle", fill: part.side === "bot" ? ink2 : ink });
+    const [cx, cy] = part.lp ? v.pt(...part.lp) : part.k === "usb" || part.k === "eth" ? v.pt(part.x + part.w * 0.62, part.y + part.h / 2) : v.center(part);
+    const bga = part.k === "soc" || (part.k === "ic" && part.w >= 11);
+    o += kText(cx, cy + 4, part.ref, { anchor: "middle", fill: part.side === "bot" ? K.bsilk : K.fsilk, attrs: bga ? ` stroke="${K.bg}" stroke-width="4" paint-order="stroke"` : "" });
   }
   return o;
 }
 
-function dimH(x1, x2, yFeat, yd, label) {
-  const d = yd > yFeat ? 1 : -1;
-  const [X1, X2, Y] = [hp(x1), hp(x2), hp(yd)];
-  return vline(x1, yFeat + 2 * d, yd + 4 * d, BP.ink2) + vline(x2, yFeat + 2 * d, yd + 4 * d, BP.ink2) + line(X1, Y, X2, Y, BP.ink2) + arrow(X1, Y, Math.PI, BP.ink2) + arrow(X2, Y, 0, BP.ink2) + bpText((X1 + X2) / 2, Y - 4, label, { anchor: "middle", fill: BP.white });
-}
-function dimV(y1, y2, xFeat, xd, label) {
-  const d = xd > xFeat ? 1 : -1;
-  const [Y1, Y2, X] = [hp(y1), hp(y2), hp(xd)];
-  return hline(xFeat + 2 * d, xd + 4 * d, y1, BP.ink2) + hline(xFeat + 2 * d, xd + 4 * d, y2, BP.ink2) + line(X, Y1, X, Y2, BP.ink2) + arrow(X, Y1, -Math.PI / 2, BP.ink2) + arrow(X, Y2, Math.PI / 2, BP.ink2) + bpText(X - 4, (Y1 + Y2) / 2, label, { anchor: "middle", rot: -90, fill: BP.white });
-}
-// Antenna symbol (IEC 60617): stem from (x, y) towards dir (-1 up, +1 down), open triangle at the far end; 24 px long.
-function antenna(x, y, dir) {
-  const [X, a, b] = [hp(x), y + dir * 10, y + dir * 24];
-  return line(X, y, X, b, BP.ink) + path(`M${X - 8} ${b}L${X} ${a}L${X + 8} ${b}Z`, BP.ink);
-}
-// First-angle projection symbol (ISO 128): end view circles, then the truncated cone.
-const projectionSymbol = (x, y) =>
-  circle(x + 6.5, y + 6, 6.5, BP.ink) + circle(x + 6.5, y + 6, 3.5, BP.ink) + line(x - 2.5, y + 6, x + 15.5, y + 6, BP.ink, 1, DASH_CENTRE) +
-  path(`M${x + 18} ${y + 2.5}L${x + 34} ${y - 0.5}L${x + 34} ${y + 12.5}L${x + 18} ${y + 9.5}Z`, BP.ink);
-
-const TRIAL_MBPS = [0, 1, 2, 4, 6, 8, 10, 12, 15]; // orion_bench encoder targets, one trial each
-const TRIAL_SPEC = [
-  ["CONTROL", "TwistStamped at 50 Hz"],
-  ["VIDEO", "synthetic H.264, ffmpeg"],
-  ["MEASURED", "latency: mean, median, p95,"],
-  ["", "p99, max, std; seq gaps; CPU"],
-  ["CLOCKS", "Chrony, offset checked first"],
-  ["STARTED BY", "orion-run_trial over SSH"],
-  ["DDS", "CycloneDDS over UDP"],
-  ["IMAGES", "one Nix flake, NixOS aarch64"],
-  ["", "nixosConfigurations.drone"],
-  ["", "nixosConfigurations.ground"],
+const ORION_LAYERS = [
+  [KICAD.fcu, "F.Cu", "front copper"], [KICAD.bcu, "B.Cu", "back copper"], [KICAD.pth, "PTH pads", "header, jacks"],
+  [KICAD.fsilk, "F.Silkscreen", "designators"], [KICAD.bsilk, "B.Silkscreen", "microSD J1"],
+  [KICAD.fcrt, "F.Courtyard", "top parts"], [KICAD.bcrt, "B.Courtyard", "bottom parts"],
+  [KICAD.edge, "Edge.Cuts", "85.0 x 56.0"], [KICAD.rats, "Ratsnest", "bat0 link"],
+];
+const ORION_NET_CLASSES = [["Control", "TwistStamped, 50 Hz"], ["Video", "H.264, 0 to 15 Mbps"], ["Clock", "Chrony, offset checked"], ["Trial", "orion-run_trial, SSH"]];
+// Selected-net fields; x is where each column starts (column widths fitted to IBM Plex Sans Condensed at 12 px).
+const ORION_NET = [
+  [12, "Net", "bat0"], [54.8, "Net class", "BATMAN-adv, layer 2"], [180.95, "Members", "wlan0 (U2), wlan0 (U2)"],
+  [315.18, "Cell", "IBSS, one Wi-Fi channel"], [454.88, "Transport", "CycloneDDS, UDP"], [563.03, "Ground records", "latency p95/p99, gaps"],
 ];
 
 /**
- * Orion Mesh, full width (798 x 440): the testbed as a cyanotype blueprint sheet. Left, both boards in
- * top view; middle, each radio's network stack, the two joined by one Wi-Fi channel; right, the trial
- * schedule; bottom, the title strip. Facts are from the repository's README and orion_bench.
+ * Orion Mesh, full width (798 x 440): the testbed as the KiCad PCB editor. Both boards as footprints,
+ * radios facing each other, the bat0 net drawn as one ratsnest line between them; layers and net classes
+ * on the right, the selected net along the bottom. Facts are from the repository's README and orion_bench.
  */
 export function orionTestbed(w, h) {
-  const { sheet, mid, ink, ink2, white } = BP;
-  let o = `<rect width="${w}" height="${h}" fill="${sheet}"/>${box1(7, 7, w - 14, h - 14, ink2)}${box2(14, 14, w - 28, h - 28, ink)}`;
+  const K = KICAD;
+  const cv = { y0: 26, x1: 600, y1: 370 }; // board canvas
+  const s = 2.8;
+  const vd = view(28, 112, s, true), vg = view(344, 112, s, false);
+  let o = `<rect width="${w}" height="${h}" fill="${p.surface}"/>` + fillRect(0, cv.y0, cv.x1, cv.y1 - cv.y0, K.bg);
+  // 5 mm grid dots anchored to the ground board's origin
+  const g = 5 * s;
+  let grid = "";
+  for (let x = vg.ox - g * Math.floor((vg.ox - 8) / g); x < cv.x1 - 4; x += g)
+    for (let y = vg.oy - g * Math.floor((vg.oy - cv.y0 - 8) / g); y < cv.y1 - 4; y += g) grid += `M${ip(x)} ${ip(y)}h1v1h-1z`;
+  o += `<path d="${grid}" fill="${K.grid}"/>`;
+  o += pcbFootprints(PI4, vd, "drone") + pcbFootprints(PI3, vg, "ground");
 
-  const vd = view(64, 50, 2.4), vg = view(64, 226, 2.4);
-  o += boardTop(PI4, vd) + boardTop(PI3, vg);
-  const full = { x: 0, y: 0, w: BOARD.w, h: BOARD.h };
-  const [db, gb] = [vd.box(full), vg.box(full)];
-  o += dimH(db.x, db.x + db.w - 1, db.y + db.h + 1, 202, "85.0");
-  o += dimV(db.y, db.y + db.h - 1, db.x - 10, 38, "56.0") + dimV(gb.y, gb.y + gb.h - 1, gb.x - 10, 38, "56.0");
-  const title = (x, y, name, chip) => `<text x="${x}" y="${y}" font-family="${SANS}" font-size="${TYPE.body}" font-weight="600" fill="${white}">${escapeXml(name)}<tspan dx="10" font-family="${COND}" font-size="${TYPE.label}" font-weight="500" fill="${ink}">${escapeXml(chip)}</tspan></text>`;
-  o += title(db.x, 36, "DRONE  RASPBERRY PI 4", "BCM2711, 4x Cortex-A72") + title(gb.x, 382, "GROUND  RASPBERRY PI 3", "BCM2837, 4x Cortex-A53");
-
-  // Middle column: the protocol stacks, drone on top (data flows down), ground below (data flows up).
-  const [x0, x1, rh] = [312, 532, 22];
-  const half = (x1 - x0 - 6) / 2;
-  const layer = (x, y, bw, name, note) => box1(x, y, bw, rh, ink, sheet) + bpText(x + 8, y + 15, name, { fill: white }) + bpText(x + bw - 8, y + 15, note, { anchor: "end" });
-  let y = 50;
-  o += layer(x0, y, half, "ROS 2", "50 Hz") + layer(x0 + half + 6, y, half, "ffmpeg", "H.264");
-  y += rh + 6;
-  o += layer(x0, y, half, "CycloneDDS", "UDP") + vline(x0 + half + 6 + half / 2, y - 6, y + rh + 6, ink) + bpText(x0 + half + 6 + half / 2 + 6, y + 15, "0 to 15 Mbps");
-  y += rh + 6;
-  o += layer(x0, y, x1 - x0, "bat0", "BATMAN-adv, layer 2");
-  y += rh + 6;
-  const wlanD = y;
-  o += layer(x0, y, x1 - x0, "wlan0", "IBSS (ad-hoc), CYW43455");
-  const ax = (x0 + x1) / 2;
-  o += antenna(ax, y + rh, 1);
-  const aTopD = y + rh + 24;
-  let g = 362 - rh;
-  o += layer(x0, g, half, "latency", "p95, p99") + layer(x0 + half + 6, g, half, "seq gaps", "CPU");
-  g -= rh + 6;
-  o += layer(x0, g, half, "CycloneDDS", "UDP") + layer(x0 + half + 6, g, half, "SSH", "trial start");
-  g -= rh + 6;
-  o += layer(x0, g, x1 - x0, "bat0", "BATMAN-adv, layer 2");
-  g -= rh + 6;
-  const wlanG = g;
-  o += layer(x0, g, x1 - x0, "wlan0", "IBSS (ad-hoc), BCM43438") + antenna(ax, g, -1);
-  // The air gap: one Wi-Fi channel carrying both flows.
-  const [za, zb] = [aTopD + 6, g - 24 - 6];
-  const zig = Array.from({ length: 7 }, (_, i) => [ax + (i > 0 && i < 6 ? (i % 2 ? 6 : -6) : 0), za + ((zb - za) * i) / 6]);
-  o += `<path d="M${zig.map((q) => q.map(r2).join(" ")).join("L")}" fill="none" stroke="${white}" stroke-width="1"/>` + arrow(ax, zb + 1, Math.PI / 2, white, 7, 3) + arrow(ax, za - 1, -Math.PI / 2, white, 7, 3);
-  const my = (za + zb) / 2;
-  o += bpText(ax - 18, my - 4, "TwistStamped and", { anchor: "end" }) + bpText(ax - 18, my + 12, "H.264 to ground", { anchor: "end" });
-  o += bpText(ax + 18, my - 4, "one IBSS cell,", { fill: white }) + bpText(ax + 18, my + 12, "one Wi-Fi channel", { fill: white });
-  // Leaders from each board's radio to its wlan0 layer.
-  for (const [v, parts, wy] of [[vd, PI4, wlanD], [vg, PI3, wlanG]]) {
-    const r = v.box(parts.find((q) => q.role === "wifi"));
-    const [sx, sy] = [r.x + r.w, hp(r.y + r.h / 2)];
-    o += `<circle cx="${r2(sx)}" cy="${sy}" r="2" fill="${white}"/>` + path(`M${r2(sx)} ${sy}H${hp(292)}V${hp(wy + rh / 2)}H${x0}`, ink2, "none", DASH_HIDDEN);
+  // bat0: both radios outlined, one airwire between their pads
+  const [ud, ug] = [vd.box(PI4.find((q) => q.role === "wifi")), vg.box(PI3.find((q) => q.role === "wifi"))];
+  const [a, b] = [[ud.x + ud.w, ud.y + ud.h / 2], [ug.x, ug.y + ug.h / 2]];
+  o += box1(ud.x - 2, ud.y - 2, ud.w + 4, ud.h + 4, K.rats, ` data-radio="drone"`) + box1(ug.x - 2, ug.y - 2, ug.w + 4, ug.h + 4, K.rats, ` data-radio="ground"`);
+  o += line(...a, ...b, K.rats, ` data-net="bat0"`);
+  o += `<circle cx="${r2(a[0])}" cy="${r2(a[1])}" r="2.5" fill="${K.bg}" stroke="${K.rats}" stroke-width="1"/><circle cx="${r2(b[0])}" cy="${r2(b[1])}" r="2.5" fill="${K.bg}" stroke="${K.rats}" stroke-width="1"/>`;
+  o += kText((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 6, "bat0", { anchor: "middle", fill: K.rats, rot: r2((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI) });
+  // F.Fab captions and the 85 mm dimension on User.Drawings
+  for (const [v, l1, l2, cfg] of [[vd, "drone: Raspberry Pi 4, BCM2711", "U2 CYW43455 on wlan0", "drone"], [vg, "ground: Raspberry Pi 3, BCM2837", "U2 BCM43438 on wlan0", "ground"]]) {
+    o += kText(v.ox - 8, v.oy - 26, l1, { fill: K.fab }) + kText(v.ox - 8, v.oy - 10, l2, { fill: K.fab });
+    o += kText(v.ox + 10, v.oy + BOARD.h * s + 26, `nixosConfigurations.${cfg}`, { fill: K.fab });
   }
+  const gb = vg.box({ x: 0, y: 0, w: BOARD.w, h: BOARD.h });
+  const [X1, X2, Y, yf] = [hp(gb.x), hp(gb.x + gb.w - 1), hp(gb.y + gb.h + 50), gb.y + gb.h + 3];
+  o += vline(gb.x, yf + 2, Y + 4, K.fab) + vline(gb.x + gb.w - 1, yf + 2, Y + 4, K.fab) + line(X1, Y, X2, Y, K.fab) + arrow(X1, Y, Math.PI, K.fab) + arrow(X2, Y, 0, K.fab);
+  o += kText((X1 + X2) / 2, Y - 4, "85.0 mm", { anchor: "middle", fill: K.fab });
 
-  // Right column: the trial schedule.
-  const [rx0, rx1] = [552, w - 26];
-  o += bpText(rx0, 60, "TRIAL SCHEDULE", { sans: true, size: TYPE.body, fill: white });
-  o += bpText(rx0, 82, "ENCODER TARGET, Mbps (ONE TRIAL EACH)", { size: 10, fill: ink2 });
-  const cw = (rx1 - rx0) / TRIAL_MBPS.length;
-  o += box1(rx0, 88, rx1 - rx0 + 1, 24, ink);
-  TRIAL_MBPS.forEach((mbps, i) => {
-    if (i) o += vline(rx0 + i * cw, 88, 112, ink2);
-    o += bpText(rx0 + (i + 0.5) * cw, 104, String(mbps), { anchor: "middle", fill: white, attrs: ` data-mbps="${mbps}"` });
+  // window chrome
+  o += fillRect(0, 0, w, cv.y0, p.surface) + hline(0, w, cv.y0 - 1, p.structure);
+  o += kText(12, 17, "orion-mesh.kicad_pcb", { fill: p.text }) + kText(133.46, 17, "PCB Editor", { fill: p.text3 });
+  o += kText(cv.x1 - 10, 17, "net highlight: bat0", { anchor: "end", fill: p.text3 });
+  // appearance panel: layers, then net classes
+  const [px0, px1] = [cv.x1, w];
+  o += fillRect(px0, cv.y0, px1 - px0, cv.y1 - cv.y0, p.surface) + vline(px0, cv.y0, cv.y1, p.structure);
+  o += kText(px0 + 12, cv.y0 + 20, "Layers", { sans: true, fill: p.text });
+  ORION_LAYERS.forEach(([fill, name, note], i) => {
+    const y = cv.y0 + 34 + i * 20;
+    if (i === ORION_LAYERS.length - 1) o += fillRect(px0 + 1, y - 4, px1 - px0 - 1, 20, p.structure);
+    o += fillRect(px0 + 12, y + 1, 10, 10, fill) + kText(px0 + 30, y + 10, name, { fill: p.text }) + kText(px1 - 12, y + 10, note, { anchor: "end", fill: p.text3 });
   });
-  TRIAL_SPEC.forEach(([key, value], i) => {
-    const yy = 128 + i * 22;
-    if (key && i) o += hline(rx0, rx1, yy - 15, mid);
-    if (key) o += bpText(rx0, yy, key, { size: 10, fill: ink2 });
-    o += bpText(rx0 + 62, yy, value, { fill: white });
+  const ny = cv.y0 + 34 + ORION_LAYERS.length * 20 + 18;
+  o += hline(px0, px1, ny - 12, p.structure) + kText(px0 + 12, ny + 6, "Net classes", { sans: true, fill: p.text });
+  ORION_NET_CLASSES.forEach(([name, note], i) => { o += kText(px0 + 12, ny + 26 + i * 18, name) + kText(px1 - 12, ny + 26 + i * 18, note, { anchor: "end", fill: p.text3 }); });
+  // message panel: the selected net
+  const [my0, my1] = [cv.y1, 418];
+  o += fillRect(0, my0, w, my1 - my0, p.surface) + hline(0, w, my0, p.structure);
+  ORION_NET.forEach(([x, key, value], i) => {
+    if (i) o += vline(x - 10, my0 + 8, my1 - 8, p.structure);
+    o += kText(x, my0 + 20, key, { fill: p.text3 }) + kText(x, my0 + 38, value, { fill: p.text });
   });
-
-  // Title strip.
-  const [ty0, ty1] = [h - 48, h - 14];
-  o += hline(14, w - 14, ty0, ink, 2);
-  [[14, "TITLE", "ORION MESH, RF LINK BETWEEN TWO NODES"], [330, "DRAWN", "Z. STUBBS"], [430, "DWG NO", "OM-002"], [510, "REV", "A"], [556, "SCALE", "1:1"], [610, "UNITS", "mm"], [664, "SHEET", "1 / 1"]].forEach(([x, cap, value], i) => {
-    if (i) o += vline(x, ty0 + 1, ty1 - 1, ink2);
-    o += bpText(x + 6, ty0 + 12, cap, { size: 10, fill: ink2 }) + bpText(x + 6, ty0 + 27, value, { fill: white, ...(i ? {} : { sans: true, size: TYPE.body }) });
-  });
-  o += vline(722, ty0 + 1, ty1 - 1, ink2) + projectionSymbol(733, ty0 + 10);
+  // status bar
+  o += fillRect(0, my1, w, h - my1, p.bg) + hline(0, w, my1, p.structure);
+  o += kText(12, h - 7, "X 85.0000  Y 56.0000", { fill: p.text3 }) + kText(170, h - 7, "grid 5.0000 mm", { fill: p.text3 });
+  o += kText(w - 12, h - 7, "both SD images from one Nix flake  |  mm", { anchor: "end", fill: p.text3 });
   return fixed(o);
 }
 

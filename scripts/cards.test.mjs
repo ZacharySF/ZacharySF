@@ -7,6 +7,24 @@ import { layers } from "./projects.mjs";
 import { calendarStats, renderCalendarCard } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
+// GitHub's image proxy refuses an SVG that is not well-formed XML and shows its alt text instead,
+// so every attribute in every start tag must be name="value". Returns the offending tags.
+const malformedTags = (svg) =>
+  [...svg.replace(/<!--[\s\S]*?-->/g, "").replace(/<style>[\s\S]*?<\/style>/g, "").matchAll(/<([a-zA-Z][\w:-]*)([^>]*)>/g)]
+    .filter(([, , attrs]) => attrs.replace(/\s+[\w:-]+="[^"]*"/g, "").replace(/\s*\/$/, "").trim() !== "")
+    .map(([tag]) => tag.slice(0, 120));
+
+test("every generated image is well-formed: no attribute without a quoted value", async () => {
+  const { renderCardRow, renderStack } = await import("./build-assets.mjs");
+  const { stack } = await import("./projects.mjs");
+  const images = {
+    hero: renderHero(gpuData),
+    cardRow: renderCardRow(renderCalendarCard(calendar), renderStack(stack)),
+    ...Object.fromEntries(layers.flatMap((l) => l.projects).map((pr) => [pr.slug, renderProject(pr)])),
+  };
+  for (const [name, svg] of Object.entries(images)) assert.deepEqual(malformedTags(svg), [], name);
+});
+
 const day = (date, count, level) => ({ date, count, level });
 const calendar = {
   total: 9,
@@ -223,7 +241,7 @@ test("each language's PHY lights its 12 slices in proportion to its share, the l
 
 test("the die stays inside its 304 x 260 region left of the side panel", () => {
   const svg = renderHero(gpuData);
-  const die = svg.match(/<g data-die transform="translate\((\d+) (\d+)\)"/);
+  const die = svg.match(/<g data-die="1" transform="translate\((\d+) (\d+)\)"/);
   assert.deepEqual([Number(die[1]), Number(die[2])], [24, 24]);
   const body = svg.slice(svg.indexOf("<g data-die"), svg.indexOf("<!--/fixed-->", svg.indexOf("<g data-die")));
   for (const [, x, y, w, h] of body.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
@@ -312,22 +330,22 @@ test("README image links carry each file's version, so a redrawn image is not se
   assert.equal(versionImages(out, () => "bbbb2222").match(/\?v=/g).length, 3, "restamping replaces the version, it does not stack");
 });
 
-test("the Orion blueprint is one cyanotype sheet that keeps its colours on the light page", async () => {
+test("the Orion PCB view is one fixed KiCad window that keeps its colours on the light page", async () => {
   const { orionTestbed } = await import("./diagrams.mjs");
   const svg = orionTestbed(798, 440);
-  assert.ok(svg.startsWith("<!--fixed-->") && svg.endsWith("<!--/fixed-->"), "the whole sheet is drawn hardware");
+  assert.ok(svg.startsWith("<!--fixed-->") && svg.endsWith("<!--/fixed-->"), "the whole window is drawn hardware");
   assert.equal(retheme(svg), svg);
-  assert.ok(svg.includes(`<rect width="798" height="440" fill="${PALETTE.ramp[0]}"/>`), "sheet fills the slot");
+  assert.ok(svg.includes(`<rect width="798" height="440" fill="${PALETTE.surface}"/>`), "window fills the slot");
   assert.ok(!/font-family="PlexSans"/.test(svg), "uses the SANS/COND stacks");
 });
 
-test("the Orion blueprint lists every encoder target of the trial schedule and stays inside its slot", async () => {
+test("the Orion PCB view highlights bat0 as one ratsnest line between the two radios and stays inside its slot", async () => {
   const { orionTestbed } = await import("./diagrams.mjs");
   const svg = orionTestbed(798, 440);
-  const cells = [...svg.matchAll(/data-mbps="(\d+)"/g)].map((m) => +m[1]);
-  assert.deepEqual(cells, [0, 1, 2, 4, 6, 8, 10, 12, 15]);
+  assert.equal([...svg.matchAll(/<line [^>]*data-net="bat0"/g)].length, 1, "one airwire for bat0");
+  assert.deepEqual([...svg.matchAll(/data-radio="(\w+)"/g)].map((m) => m[1]), ["drone", "ground"], "both radios outlined");
   for (const [, x, y] of svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"/g)) {
     assert.ok(+x >= 0 && +x <= 798 && +y >= 0 && +y <= 440, `text at ${x},${y} is inside the slot`);
   }
-  for (const label of ["RASPBERRY PI 4", "RASPBERRY PI 3", "BATMAN-adv", "IBSS", "TRIAL SCHEDULE"]) assert.ok(svg.includes(label), label);
+  for (const label of ["F.Cu", "B.Cu", "F.Silkscreen", "F.Courtyard", "Edge.Cuts", "Ratsnest", "Raspberry Pi 4", "Raspberry Pi 3", "BATMAN-adv", "IBSS", "0 to 15 Mbps"]) assert.ok(svg.includes(label), label);
 });

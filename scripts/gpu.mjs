@@ -76,7 +76,7 @@ function renderDie(data) {
     return `<g data-gpc="${g}"><title>GPC${g} · ${escapeXml(repo.title)}: ${repo.contributions} contributions · ${lit} of ${SMS_PER_GPC} SMs</title>${body}</g>`;
   });
 
-  return `<g data-die transform="translate(${MARGIN} ${MARGIN})" font-family="${COND}" font-weight="500" font-size="${TYPE.label}">
+  return `<g data-die="1" transform="translate(${MARGIN} ${MARGIN})" font-family="${COND}" font-weight="500" font-size="${TYPE.label}">
     ${rect(6, 6, 292, 248, p.die)}${rect(9, 9, 286, 242, "url(#die-logic)", ` fill-opacity="0.5"`)}
     ${box(6, 6, 292, 248, p.dieRing)}${box(8, 8, 288, 244, p.dieRing, ` stroke-opacity="0.6"`)}
     ${mcs.join("")}

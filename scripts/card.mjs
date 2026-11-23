@@ -122,10 +122,10 @@ function pcie(X0, z0, yNear) {
   const segs = [[yNear - 12, yNear], [yNear - 12 - 2.4 - 77, yNear - 12 - 2.4]]; // pins 1-11 by the bracket, key notch, long run
   let s = "";
   for (const [a, b] of segs) {
-    s += box(X0, a, z0, ext, b - a, t, PCB, " data-edge");
+    s += box(X0, a, z0, ext, b - a, t, PCB, ` data-edge="1"`);
     for (let y = a + 1.2; y < b - 0.8; y += 2) {
       const [u0, u1, v0, v1] = [X0 + 1.6, X0 + ext - 0.2, y, y + 1.1];
-      s += poly([[u0, v0, z0 + t], [u1, v0, z0 + t], [u1, v1, z0 + t], [u0, v1, z0 + t]], p.gold, " data-contact");
+      s += poly([[u0, v0, z0 + t], [u1, v0, z0 + t], [u1, v1, z0 + t], [u0, v1, z0 + t]], p.gold, ` data-contact="1"`);
     }
   }
   return s;

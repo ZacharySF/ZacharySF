@@ -1,6 +1,6 @@
 {
   "user": "ZacharySF",
-  "generatedAt": "2026-11-18",
+  "generatedAt": "2026-11-23",
   "repos": [
     {
       "title": "Determine",
@@ -50,9 +50,9 @@
       "repos": [
         "ZacharySF/nixos-config"
       ],
-      "contributions": 31,
+      "contributions": 35,
       "breakdown": {
-        "commits": 31,
+        "commits": 35,
         "pullRequests": 0,
         "issues": 0,
         "reviews": 0
@@ -94,55 +94,18 @@
       "repos": [
         "ZacharySF/kitty"
       ],
-      "contributions": 742,
+      "contributions": 779,
       "breakdown": {
-        "commits": 621,
-        "pullRequests": 121,
+        "commits": 649,
+        "pullRequests": 130,
         "issues": 0,
         "reviews": 0
       }
     }
   ],
   "calendar": {
-    "total": 1071,
+    "total": 1148,
     "weeks": [
-      [
-        {
-          "date": "2025-11-16",
-          "count": 0,
-          "level": 0
-        },
-        {
-          "date": "2025-11-17",
-          "count": 0,
-          "level": 0
-        },
-        {
-          "date": "2025-11-18",
-          "count": 0,
-          "level": 0
-        },
-        {
-          "date": "2025-11-19",
-          "count": 0,
-          "level": 0
-        },
-        {
-          "date": "2025-11-20",
-          "count": 0,
-          "level": 0
-        },
-        {
-          "date": "2025-11-21",
-          "count": 0,
-          "level": 0
-        },
-        {
-          "date": "2025-11-22",
-          "count": 0,
-          "level": 0
-        }
-      ],
       [
         {
           "date": "2025-11-23",
@@ -1848,8 +1811,8 @@
       [
         {
           "date": "2026-10-11",
-          "count": 0,
-          "level": 0
+          "count": 5,
+          "level": 1
         },
         {
           "date": "2026-10-12",
@@ -2026,14 +1989,14 @@
         },
         {
           "date": "2026-11-14",
-          "count": 50,
+          "count": 51,
           "level": 3
         }
       ],
       [
         {
           "date": "2026-11-15",
-          "count": 39,
+          "count": 40,
           "level": 2
         },
         {
@@ -2048,7 +2011,29 @@
         },
         {
           "date": "2026-11-18",
+          "count": 54,
+          "level": 3
+        },
+        {
+          "date": "2026-11-19",
+          "count": 14,
+          "level": 1
+        },
+        {
+          "date": "2026-11-20",
           "count": 9,
+          "level": 1
+        },
+        {
+          "date": "2026-11-21",
+          "count": 0,
+          "level": 0
+        }
+      ],
+      [
+        {
+          "date": "2026-11-22",
+          "count": 2,
           "level": 1
         }
       ]
@@ -2081,12 +2066,12 @@
     }
   ],
   "totals": {
-    "followers": 19,
-    "repos": 15,
-    "stars": 8,
-    "contributions": 919,
-    "commits": 872,
-    "pullRequests": 184,
+    "followers": 21,
+    "repos": 16,
+    "stars": 9,
+    "contributions": 960,
+    "commits": 924,
+    "pullRequests": 208,
     "hbmProjects": 6
   }
 }

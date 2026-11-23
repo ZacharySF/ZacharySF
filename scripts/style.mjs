@@ -22,6 +22,13 @@ export const PALETTE = {
   silverLight: "#c8ced6",
   silverDark: "#4b5563",
   cap: "#9aa3ae", // decoupling caps on the substrate, a shade of silver
+  gold: "#e3bb5c", // PCIe edge-connector contacts
+  // Bare silicon as an infrared die shot shows it (hero die): substrate, seal ring, SRAM rows, logic grain, PHY area.
+  die: "#15181f",
+  dieRing: "#3a3f4b",
+  dieSram: "#2c313d",
+  dieGrain: "#24282f",
+  diePhy: "#1b1f27",
 };
 
 // The same roles on GitHub's white page. Images are drawn once in PALETTE; retheme() swaps the colours.

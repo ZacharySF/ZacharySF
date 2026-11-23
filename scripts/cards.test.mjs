@@ -32,16 +32,23 @@ test("the card's LED matrix has one LED per day, lit with the die's blue ramp", 
   assert.ok(!/undefined|NaN/.test(svg));
 });
 
-test("white GPU contacts stay within the card's visible side face", () => {
+test("gold PCIe contacts lie on the edge connector's PCB tabs, not floating off the card", () => {
   const svg = renderCalendarCard(calendar);
-  const contacts = [...svg.matchAll(new RegExp(`<polygon points="([^"]+)" fill="${PALETTE.text}"/>`, "g"))];
-  assert.equal(contacts.length, 22);
-  for (const [, points] of contacts) {
-    for (const point of points.split(" ")) {
-      const [x, y] = point.split(",").map(Number);
-      const bottom = 42 + ((x - 104) / 8.66 + 18) * 5;
-      assert.ok(y < bottom && y > bottom - 12, `contact outside side face: ${point}`);
-    }
+  const polys = (attr) => [...svg.matchAll(new RegExp(`<polygon points="([^"]+)"[^>]*${attr}`, "g"))].map(([, pts]) => pts.split(" ").map((q) => q.split(",").map(Number)));
+  const tabs = polys("data-edge");
+  const contacts = polys("data-contact");
+  assert.equal(tabs.length, 2, "short and long segment either side of the key notch");
+  assert.ok(contacts.length >= 40, `x16 connector has a full row of contacts, got ${contacts.length}`);
+  // Convex containment: the point is on the inner side of every edge of the tab's top face.
+  const inside = (poly, [x, y]) => {
+    const sides = poly.map(([ax, ay], i) => {
+      const [bx, by] = poly[(i + 1) % poly.length];
+      return (bx - ax) * (y - ay) - (by - ay) * (x - ax);
+    });
+    return sides.every((c) => c >= -0.5) || sides.every((c) => c <= 0.5);
+  };
+  for (const contact of contacts) {
+    assert.ok(tabs.some((tab) => contact.every((pt) => inside(tab, pt))), `contact off the PCB edge: ${contact.join(" ")}`);
   }
 });
 
@@ -205,6 +212,25 @@ test("each memory controller is one language labelled with its share", () => {
   assert.ok(svg.includes("Rust 50%") && svg.includes("C++ 25%"));
 });
 
+test("each language's PHY lights its 12 slices in proportion to its share, the largest all of them", () => {
+  const svg = renderHero(gpuData);
+  const lit = (m) => (svg.match(new RegExp(`data-mc="${m}" data-lit="1"`, "g")) ?? []).length;
+  assert.equal((svg.match(/data-mc="0"/g) ?? []).length, 12);
+  assert.equal(lit(0), 12, "Rust has the largest share");
+  assert.equal(lit(1), 6, "C++ has half of it");
+  assert.ok(svg.includes(">Rust</text>") && svg.includes(">C++</text>"), "each PHY is named on the die");
+});
+
+test("the die stays inside its 304 x 260 region left of the side panel", () => {
+  const svg = renderHero(gpuData);
+  const die = svg.match(/<g data-die transform="translate\((\d+) (\d+)\)"/);
+  assert.deepEqual([Number(die[1]), Number(die[2])], [24, 24]);
+  const body = svg.slice(svg.indexOf("<g data-die"), svg.indexOf("<!--/fixed-->", svg.indexOf("<g data-die")));
+  for (const [, x, y, w, h] of body.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
+    assert.ok(+x >= 0 && +y >= 0 && +x + +w <= 304 && +y + +h <= 260, `rect ${x},${y} ${w}x${h}`);
+  }
+});
+
 test("SM thresholds climb from 1 to 128 contributions so small repos still show", () => {
   assert.equal(SM_THRESHOLDS[0], 1);
   assert.equal(SM_THRESHOLDS.at(-1), 128);
@@ -284,4 +310,24 @@ test("README image links carry each file's version, so a redrawn image is not se
   const out = versionImages(readme, (path) => (path.includes("hero") ? "aaaa1111" : "bbbb2222"));
   assert.equal(out, '<source srcset="assets/hero-light.svg?v=aaaa1111"><img src="assets/hero-dark.svg?v=aaaa1111" width="846"> <img src="assets/projects/x-dark.svg?v=bbbb2222">');
   assert.equal(versionImages(out, () => "bbbb2222").match(/\?v=/g).length, 3, "restamping replaces the version, it does not stack");
+});
+
+test("the Orion blueprint is one cyanotype sheet that keeps its colours on the light page", async () => {
+  const { orionTestbed } = await import("./diagrams.mjs");
+  const svg = orionTestbed(798, 440);
+  assert.ok(svg.startsWith("<!--fixed-->") && svg.endsWith("<!--/fixed-->"), "the whole sheet is drawn hardware");
+  assert.equal(retheme(svg), svg);
+  assert.ok(svg.includes(`<rect width="798" height="440" fill="${PALETTE.ramp[0]}"/>`), "sheet fills the slot");
+  assert.ok(!/font-family="PlexSans"/.test(svg), "uses the SANS/COND stacks");
+});
+
+test("the Orion blueprint lists every encoder target of the trial schedule and stays inside its slot", async () => {
+  const { orionTestbed } = await import("./diagrams.mjs");
+  const svg = orionTestbed(798, 440);
+  const cells = [...svg.matchAll(/data-mbps="(\d+)"/g)].map((m) => +m[1]);
+  assert.deepEqual(cells, [0, 1, 2, 4, 6, 8, 10, 12, 15]);
+  for (const [, x, y] of svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"/g)) {
+    assert.ok(+x >= 0 && +x <= 798 && +y >= 0 && +y <= 440, `text at ${x},${y} is inside the slot`);
+  }
+  for (const label of ["RASPBERRY PI 4", "RASPBERRY PI 3", "BATMAN-adv", "IBSS", "TRIAL SCHEDULE"]) assert.ok(svg.includes(label), label);
 });

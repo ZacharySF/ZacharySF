@@ -3,21 +3,22 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { layers } from "./projects.mjs";
+import { categories } from "./projects.mjs";
 
 export const USER = "ZacharySF";
 export const HBM_STACKS = 6;
 
-// One GPC per entry, deepest first. Chosen for technical depth, not activity, so the die
-// is mostly hardware and systems work; `extra` repos are mirrors or spin-offs counted with it.
+// One GPC per entry, in the README's order, so cluster N on the die is the Nth project below it.
+// `extra` repos are mirrors or spin-offs counted with it.
 // The die has 8 GPC slots; unused slots are drawn fused off, as on a harvested chip.
 const GPCS = [
+  { slug: "cleanroom" },
+  { slug: "misaos" },
+  { slug: "nixos-config" },
   { slug: "determine" },
   { slug: "orion-mesh" },
-  { slug: "cleanroom" },
-  { slug: "nixos-config" },
-  { slug: "ichor", extra: ["nunera/Ichor"] },
   { slug: "ginseng", extra: ["ZacharySF/ginseng-tui"] },
+  { slug: "ichor", extra: ["nunera/Ichor"] },
   { slug: "rika", hbm: false }, // Python-heavy app; kept out of the memory controllers
 ];
 
@@ -41,13 +42,6 @@ export function countByRepo(collections) {
     }
   }
   return counts;
-}
-
-/** Lifetime totals of each contribution kind over every repository in `counts` (from countByRepo). */
-export function totalKinds(counts) {
-  const total = { commits: 0, pullRequests: 0, issues: 0, reviews: 0 };
-  for (const entry of counts.values()) for (const kind of Object.keys(total)) total[kind] += entry[kind];
-  return total;
 }
 
 /** Merge per-repo language byte counts and return the top `n` as shares of all bytes. */
@@ -118,9 +112,7 @@ async function contributionCalendar() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const projects = new Map(
-    layers.flatMap((layer, index) => layer.projects.map((p) => [p.slug, { ...p, layer: index + 1 }])),
-  );
+  const projects = new Map(categories.flatMap((c) => c.projects).map((p) => [p.slug, p]));
   const user = await rest(`users/${USER}`);
   const counts = await allContributions(user.created_at);
 
@@ -132,7 +124,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const breakdown = { ...zero };
     for (const name of names) for (const [k, v] of Object.entries(counts.get(name) ?? zero)) breakdown[k] += v;
     const contributions = Object.values(breakdown).reduce((a, b) => a + b, 0);
-    return { title: project.title, layer: project.layer, repos: names, contributions, breakdown };
+    return { title: project.title, repos: names, contributions, breakdown };
   });
 
   const ignored = new Set(["HTML", "CSS", "Dockerfile", "mdsvex", "Jupyter Notebook"]); // metrics' ignore list, plus notebooks
@@ -143,25 +135,15 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     HBM_STACKS,
   );
 
-  const owned = (await rest(`users/${USER}/repos?type=owner&per_page=100`)).filter((r) => !r.fork);
   const data = {
     user: USER,
     generatedAt: new Date().toISOString().slice(0, 10),
     repos,
     calendar: await contributionCalendar(),
     languages,
-    totals: {
-      followers: user.followers,
-      repos: user.public_repos,
-      stars: owned.reduce((n, r) => n + r.stargazers_count, 0),
-      contributions: repos.reduce((n, r) => n + r.contributions, 0),
-      commits: totalKinds(counts).commits,
-      pullRequests: totalKinds(counts).pullRequests,
-      hbmProjects: GPCS.filter((g) => g.hbm !== false).length, // projects whose code the language shares are measured over
-    },
   };
   const out = join(dirname(fileURLToPath(import.meta.url)), "../assets/gpu-data.json");
   writeFileSync(out, `${JSON.stringify(data, null, 2)}\n`);
   console.log(`wrote ${out}`);
-  for (const r of repos) console.log(`  L${r.layer} ${r.title}: ${r.contributions} ${JSON.stringify(r.breakdown)}`);
+  for (const r of repos) console.log(`  ${r.title}: ${r.contributions} ${JSON.stringify(r.breakdown)}`);
 }

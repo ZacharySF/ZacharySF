@@ -1,10 +1,48 @@
 {
   "user": "ZacharySF",
-  "generatedAt": "2026-11-24",
+  "generatedAt": "2026-11-25",
   "repos": [
     {
+      "title": "cleanroom",
+      "repos": [
+        "nunera/cleanroom"
+      ],
+      "contributions": 75,
+      "breakdown": {
+        "commits": 43,
+        "pullRequests": 32,
+        "issues": 0,
+        "reviews": 0
+      }
+    },
+    {
+      "title": "MisaOS",
+      "repos": [
+        "ZacharySF/misaos"
+      ],
+      "contributions": 4,
+      "breakdown": {
+        "commits": 4,
+        "pullRequests": 0,
+        "issues": 0,
+        "reviews": 0
+      }
+    },
+    {
+      "title": "nixos-config",
+      "repos": [
+        "ZacharySF/nixos-config"
+      ],
+      "contributions": 35,
+      "breakdown": {
+        "commits": 35,
+        "pullRequests": 0,
+        "issues": 0,
+        "reviews": 0
+      }
+    },
+    {
       "title": "Determine",
-      "layer": 1,
       "repos": [
         "nunera/Determine"
       ],
@@ -18,7 +56,6 @@
     },
     {
       "title": "Orion Mesh",
-      "layer": 1,
       "repos": [
         "ZacharySF/Orion-Mesh"
       ],
@@ -31,51 +68,7 @@
       }
     },
     {
-      "title": "cleanroom",
-      "layer": 2,
-      "repos": [
-        "nunera/cleanroom"
-      ],
-      "contributions": 75,
-      "breakdown": {
-        "commits": 43,
-        "pullRequests": 32,
-        "issues": 0,
-        "reviews": 0
-      }
-    },
-    {
-      "title": "nixos-config",
-      "layer": 2,
-      "repos": [
-        "ZacharySF/nixos-config"
-      ],
-      "contributions": 35,
-      "breakdown": {
-        "commits": 35,
-        "pullRequests": 0,
-        "issues": 0,
-        "reviews": 0
-      }
-    },
-    {
-      "title": "Ichor",
-      "layer": 3,
-      "repos": [
-        "ZacharySF/ichor",
-        "nunera/Ichor"
-      ],
-      "contributions": 8,
-      "breakdown": {
-        "commits": 8,
-        "pullRequests": 0,
-        "issues": 0,
-        "reviews": 0
-      }
-    },
-    {
       "title": "Ginseng",
-      "layer": 3,
       "repos": [
         "nunera/ginseng",
         "ZacharySF/ginseng-tui"
@@ -89,8 +82,21 @@
       }
     },
     {
+      "title": "Ichor",
+      "repos": [
+        "ZacharySF/ichor",
+        "nunera/Ichor"
+      ],
+      "contributions": 8,
+      "breakdown": {
+        "commits": 8,
+        "pullRequests": 0,
+        "issues": 0,
+        "reviews": 0
+      }
+    },
+    {
       "title": "rika!",
-      "layer": 4,
       "repos": [
         "ZacharySF/kitty"
       ],
@@ -104,7 +110,7 @@
     }
   ],
   "calendar": {
-    "total": 1160,
+    "total": 1161,
     "weeks": [
       [
         {
@@ -2045,6 +2051,11 @@
           "date": "2026-11-24",
           "count": 0,
           "level": 0
+        },
+        {
+          "date": "2026-11-25",
+          "count": 1,
+          "level": 1
         }
       ]
     ]
@@ -2052,36 +2063,27 @@
   "languages": [
     {
       "name": "Python",
-      "share": 0.351
+      "share": 0.334
     },
     {
       "name": "Rust",
-      "share": 0.182
+      "share": 0.227
     },
     {
       "name": "Svelte",
-      "share": 0.134
+      "share": 0.122
     },
     {
       "name": "TypeScript",
-      "share": 0.126
+      "share": 0.115
     },
     {
       "name": "Swift",
-      "share": 0.058
+      "share": 0.053
     },
     {
       "name": "Kotlin",
-      "share": 0.053
+      "share": 0.049
     }
-  ],
-  "totals": {
-    "followers": 20,
-    "repos": 16,
-    "stars": 9,
-    "contributions": 970,
-    "commits": 932,
-    "pullRequests": 212,
-    "hbmProjects": 6
-  }
+  ]
 }

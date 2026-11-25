@@ -1,11 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK, renderLayerStrip, renderProject, renderStats, slotsFor, versionImages, wrap } from "./build-assets.mjs";
+import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mjs";
 import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
-import { countByRepo, shareLanguages, totalKinds } from "./fetch-github.mjs";
-import { layers } from "./projects.mjs";
-import { calendarStats, renderCalendarCard } from "./card.mjs";
+import { countByRepo, shareLanguages } from "./fetch-github.mjs";
+import { categories } from "./projects.mjs";
+import { CARD_WEEKS, calendarStats, renderCalendarCard } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
+
+const allProjects = categories.flatMap((c) => c.projects);
 
 // GitHub's image proxy refuses an SVG that is not well-formed XML and shows its alt text instead,
 // so every attribute in every start tag must be name="value". Returns the offending tags.
@@ -20,7 +22,7 @@ test("every generated image is well-formed: no attribute without a quoted value"
   const images = {
     hero: renderHero(gpuData),
     cardRow: renderCardRow(renderCalendarCard(calendar), renderStack(stack)),
-    ...Object.fromEntries(layers.flatMap((l) => l.projects).map((pr) => [pr.slug, renderProject(pr)])),
+    ...Object.fromEntries(allProjects.map((pr) => [pr.slug, renderProject(pr)])),
   };
   for (const [name, svg] of Object.entries(images)) assert.deepEqual(malformedTags(svg), [], name);
 });
@@ -50,6 +52,11 @@ test("the card's LED matrix has one LED per day, lit with the die's blue ramp", 
   assert.ok(!/undefined|NaN/.test(svg));
 });
 
+test("the card's engraved total says what it counts and over how many weeks", () => {
+  const svg = renderCalendarCard(calendar);
+  assert.ok(svg.includes(`>9 CONTRIBUTIONS IN ${CARD_WEEKS} WEEKS<`), "the engraving names its period");
+});
+
 test("gold PCIe contacts lie on the edge connector's PCB tabs, not floating off the card", () => {
   const svg = renderCalendarCard(calendar);
   const polys = (attr) => [...svg.matchAll(new RegExp(`<polygon points="([^"]+)"[^>]*${attr}`, "g"))].map(([, pts]) => pts.split(" ").map((q) => q.split(",").map(Number)));
@@ -75,86 +82,48 @@ test("GPC slots without a repo are drawn fused off, as on a harvested die", () =
   assert.equal((svg.match(/data-fused=/g) ?? []).length, 8 - gpuData.repos.length);
 });
 
-const sampleLayer = { slug: "os", title: "Kernels & <isolation>", level: "kernel<" };
 const sampleProject = {
   slug: "x",
   title: "Ampersand & co",
-  role: "OS core",
-  short: "Kernel keeps evidence read only & signs every <receipt>.",
   shots: [{ file: "a.jpg", caption: "Sealed & <signed>" }, { file: "b.jpg", caption: "Two" }, { file: "c.jpg", caption: "Three" }],
 };
 
-test("markup characters in project data are escaped, not emitted raw", () => {
-  const svg = renderProject(sampleProject) + renderLayerStrip(sampleLayer, 0, 1);
+test("markup characters in captions are escaped, not emitted raw", () => {
+  const svg = renderProject(sampleProject);
   assert.ok(!svg.includes("& "), "raw ampersand would make the SVG invalid");
-  assert.ok(!svg.includes("<isolation>") && !svg.includes("<receipt>") && !svg.includes("<signed>") && !svg.includes("KERNEL<"));
-  assert.ok(svg.includes("Ampersand &amp; co") && svg.includes("Sealed &amp; &lt;signed&gt;") && svg.includes("Kernels &amp; &lt;isolation&gt;"));
+  assert.ok(!svg.includes("<signed>"));
+  assert.ok(svg.includes("Sealed &amp; &lt;signed&gt;"));
 });
 
-test("wrap never exceeds the line budget and keeps every word", () => {
-  const text = "Two Raspberry Pis on NixOS measuring ROS 2 control latency over a BATMAN-adv mesh";
-  const lines = wrap(text, 30);
-  for (const line of lines) assert.ok(line.length <= 30, line);
-  assert.equal(lines.join(" "), text);
-});
-
-test("every real project summary fits its lines and every caption fits beside its output label", () => {
-  for (const layer of layers) {
-    for (const project of layer.projects) {
-      const lines = wrap(project.short, BLOCK.summaryChars);
-      assert.ok(lines.length <= BLOCK.summaryLines, `${project.slug} summary: ${lines.length} lines`);
-      slotsFor(project).forEach((slot, i) => {
-        const room = Math.floor((slot.w - BLOCK.outputLabel) / BLOCK.captionCharWidth);
-        assert.ok(project.shots[i].caption.length <= room, `${project.slug} caption ${i}: ${project.shots[i].caption.length} > ${room}`);
-      });
-    }
+test("a project image is only its pictures: they start at the top and no title is drawn over them", () => {
+  for (const project of [sampleProject, ...allProjects]) {
+    assert.equal(Math.min(...slotsFor(project).map((s) => s.y)), 0, project.slug);
+    const visible = renderProject(project).replace(/<title[\s\S]*?<\/title>|<desc[\s\S]*?<\/desc>/g, "");
+    assert.ok(!visible.includes(`>${project.title.replace("&", "&amp;")}<`), `${project.slug} title is in the README, not the image`);
   }
 });
 
-test("a project on the die carries its GPC number from the hero map; one off the die carries none", () => {
-  assert.ok(renderProject(sampleProject, { gpc: 3 }).includes(">GPC3<"));
-  assert.ok(!renderProject(sampleProject).includes("GPC"));
-});
-
-test("pictures are numbered as outputs in the order they are listed", () => {
-  const svg = renderProject(sampleProject);
-  assert.deepEqual([...svg.matchAll(/>OUT (\d)</g)].map((m) => m[1]), ["0", "1", "2"]);
+test("every caption fits under its picture", () => {
+  for (const project of allProjects) {
+    slotsFor(project).forEach((slot, i) => {
+      const room = Math.floor(slot.w / BLOCK.captionCharWidth);
+      assert.ok(project.shots[i].caption.length <= room, `${project.slug} caption ${i}: ${project.shots[i].caption.length} > ${room}`);
+    });
+  }
 });
 
 test("pictures line up with the hero's margins, and stacked thumbnails end level with the lead", () => {
-  for (const layer of layers) {
-    for (const project of layer.projects) {
-      const slots = slotsFor(project);
-      assert.equal(Math.min(...slots.map((s) => s.x)), 24, project.slug);
-      assert.equal(Math.max(...slots.map((s) => s.x + s.w)), README_W - 24, project.slug);
-      if (slots.length === 3) {
-        const [lead, upper, lower] = slots;
-        assert.equal(upper.x - (lead.x + lead.w), 16, "gap between the lead and the thumbnails");
-        assert.equal(lower.y + lower.h, lead.y + lead.h, `${project.slug}: columns end at different heights`);
-        assert.ok(lower.y - (upper.y + upper.h) >= 32, "room for the upper thumbnail's caption");
-      }
+  for (const project of allProjects) {
+    const slots = slotsFor(project);
+    assert.equal(Math.min(...slots.map((s) => s.x)), 24, project.slug);
+    assert.equal(Math.max(...slots.map((s) => s.x + s.w)), README_W - 24, project.slug);
+    if (slots.length === 3) {
+      const [lead, upper, lower] = slots;
+      assert.equal(upper.x - (lead.x + lead.w), 16, "gap between the lead and the thumbnails");
+      assert.equal(lower.y + lower.h, lead.y + lead.h, `${project.slug}: columns end at different heights`);
+      assert.ok(lower.y - (upper.y + upper.h) >= 32, "room for the upper thumbnail's caption");
     }
   }
-});
-
-test("a longer summary pushes the pictures down instead of running into them", () => {
-  const shots = [{ file: "a.jpg", caption: "One" }, { file: "b.jpg", caption: "Two" }, { file: "c.jpg", caption: "Three" }];
-  const sentence = "Each word here adds to a summary that has to wrap across the column. ";
-  const two = slotsFor({ slug: "two", short: sentence.repeat(3).trim(), shots });
-  const three = slotsFor({ slug: "three", short: sentence.repeat(4).trim(), shots });
-  assert.equal(wrap(sentence.repeat(3).trim(), BLOCK.summaryChars).length, 2);
-  assert.equal(wrap(sentence.repeat(4).trim(), BLOCK.summaryChars).length, 3);
-  assert.equal(three[0].y - two[0].y, BLOCK.summaryLeading);
-  assert.equal(two[0].y, BLOCK.top);
-});
-
-test("each layer strip lights only its own depth bar", () => {
-  layers.forEach((layer, i) => {
-    const svg = renderLayerStrip(layer, i, layers.length);
-    assert.equal((svg.match(/data-depth="\d" data-active="true"/g) ?? []).length, 1);
-    assert.ok(svg.includes(`data-depth="${i}" data-active="true"`));
-    assert.equal((svg.match(/data-depth=/g) ?? []).length, layers.length);
-  });
 });
 
 // WCAG contrast ratio between two #rrggbb colours.
@@ -195,15 +164,14 @@ const gpuData = {
   user: "ZacharySF",
   generatedAt: "2026-11-12",
   repos: [
-    { title: "one", layer: 2, repos: ["a/one"], contributions: 128, breakdown: { commits: 100, pullRequests: 28, issues: 0, reviews: 0 } },
-    { title: "two & co", layer: 1, repos: ["a/two"], contributions: 0, breakdown: { commits: 0, pullRequests: 0, issues: 0, reviews: 0 } },
-    { title: "three", layer: 1, repos: ["a/three"], contributions: 6, breakdown: { commits: 6, pullRequests: 0, issues: 0, reviews: 0 } },
+    { title: "one", repos: ["a/one"], contributions: 128, breakdown: { commits: 100, pullRequests: 28, issues: 0, reviews: 0 } },
+    { title: "two & co", repos: ["a/two"], contributions: 0, breakdown: { commits: 0, pullRequests: 0, issues: 0, reviews: 0 } },
+    { title: "three", repos: ["a/three"], contributions: 6, breakdown: { commits: 6, pullRequests: 0, issues: 0, reviews: 0 } },
   ],
   languages: [
     { name: "Rust", share: 0.5 },
     { name: "C++", share: 0.25 },
   ],
-  totals: { followers: 20, stars: 8, repos: 19, contributions: 134 },
 };
 
 const litIn = (svg, gpc) => (svg.match(new RegExp(`data-sm="${gpc}-\\d+" data-lit="true"`, "g")) ?? []).length;
@@ -219,9 +187,12 @@ test("each GPC is one repo with a full set of SMs, lit in proportion to its cont
 });
 
 test("every hero label is filled from the data (no undefined or NaN)", () => {
+  assert.ok(!/undefined|NaN/.test(renderHero(gpuData)));
+});
+
+test("the hero's total is the sum of the project rows it lists", () => {
   const svg = renderHero(gpuData);
-  assert.ok(!/undefined|NaN/.test(svg));
-  assert.ok(svg.includes("134 contributions across 3 projects"), "every total carries its scope");
+  assert.ok(svg.includes(">134 contributions to these 3 projects<"), "128 + 0 + 6");
 });
 
 test("each memory controller is one language labelled with its share", () => {
@@ -285,42 +256,11 @@ test("every tech stack row fits beside its label", async () => {
   assert.equal((svg.match(/data-stack-row=/g) ?? []).length, stack.length);
 });
 
-test("each GPC on the die is labelled so the map rows can be found on it", () => {
+test("each cluster on the die carries the same number as its row in the project list", () => {
   const svg = renderHero(gpuData);
-  for (let g = 0; g < 8; g++) assert.ok(svg.includes(`data-gpc-label="${g}"`), `GPC${g}`);
-  assert.ok(svg.includes(">PROJECT<") && svg.includes(">CONTRIBUTIONS<"), "map columns are headed");
-});
-
-test("totalKinds adds each contribution kind over every repository", () => {
-  const counts = new Map([
-    ["a/x", { commits: 13, pullRequests: 2, issues: 1, reviews: 0 }],
-    ["a/y", { commits: 1, pullRequests: 0, issues: 0, reviews: 4 }],
-  ]);
-  assert.deepEqual(totalKinds(counts), { commits: 14, pullRequests: 2, issues: 1, reviews: 4 });
-});
-
-const statsData = {
-  languages: [{ name: "Rust & <C>", share: 0.5 }, { name: "Python", share: 0.25 }, { name: "Nix", share: 0.05 }],
-  calendar: { total: 321 },
-  totals: { commits: 1656, pullRequests: 145, stars: 8, hbmProjects: 6 },
-};
-
-test("language bars are as long as their share: half the share, half the bar", () => {
-  const svg = renderStats(statsData);
-  const width = (i) => Number(svg.match(new RegExp(`data-language="${i}" [^>]*width="(\\d+)"`))[1]);
-  assert.equal(width(1) * 2, width(0));
-  assert.equal(width(2) * 10, width(0));
-  assert.ok(svg.includes("50%") && svg.includes("25%") && svg.includes("5%"));
-  assert.ok(svg.includes("Rust &amp; &lt;C&gt;") && !svg.includes("<C>"));
-});
-
-test("every headline number is grouped by thousands and says what it counts and over what period", () => {
-  const svg = renderStats(statsData);
-  for (const [value, scope] of [["1,656", "Commits, all time"], ["145", "Pull requests, all time"], ["321", "Contributions, last 12 months"], ["8", "Stars on my repositories"]]) {
-    assert.ok(svg.includes(`>${value}<`), value);
-    assert.ok(svg.includes(`>${scope}<`), scope);
-  }
-  assert.ok(svg.includes("6 chip projects"), "the language scope matches the hero's memory controllers");
+  for (let g = 0; g < 8; g++) assert.ok(svg.includes(`data-gpc-label="${g}">${g + 1}<`), `cluster ${g + 1}`);
+  for (let g = 0; g < gpuData.repos.length; g++) assert.ok(svg.includes(`data-row="${g}">${g + 1}<`), `row ${g + 1}`);
+  assert.ok(svg.includes(">Project<") && svg.includes(">Contributions<"), "map columns are headed");
 });
 
 test("README image links carry each file's version, so a redrawn image is not served from a stale cache", () => {

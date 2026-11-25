@@ -220,7 +220,7 @@ export function renderCalendarCard(calendar, { fonts = "" } = {}) {
   for (let y = 9.8; y < 55; y += 4.6) side += rect(y, 8, 1, T - 16, p.silver);
   side += rect(L - 140, 0.2, 110, 2, VOID);
   s += g(iso.sx(W), side);
-  s += g(iso.sxText(W), `<text x="${-(L + 55) / 2}" y="${-(T / 2) + 4.5}" text-anchor="middle" font-family="${COND}" font-size="12" font-weight="500" fill="#2b323d" letter-spacing="1.5">${stats.total.toLocaleString("en-US")} CONTRIBUTIONS</text>`);
+  s += g(iso.sxText(W), `<text x="${-(L + 55) / 2}" y="${-(T / 2) + 4}" text-anchor="middle" font-family="${COND}" font-size="11" font-weight="500" fill="#2b323d" letter-spacing="0.6">${stats.total.toLocaleString("en-US")} CONTRIBUTIONS IN ${CARD_WEEKS} WEEKS</text>`);
 
   s += pcie(W, 0.4, L - 40);
   s += bracket(L, T);

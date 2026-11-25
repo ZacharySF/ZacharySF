@@ -44,7 +44,7 @@ function renderDie(data) {
     const slices = Array.from({ length: PHY_SLICES }, (_, t) => rect(tx, y + 3 + t * 6, 7, 4, t < lit ? p.accent : p.dieSram, ` data-mc="${m}" data-lit="${t < lit ? 1 : 0}"`)).join("");
     const cy = y + h / 2;
     const name = left ? label(30, cy, escapeXml(lang.name), p.text, ` text-anchor="middle" transform="rotate(-90 30 ${cy})"`) : label(274, cy, escapeXml(lang.name), p.text, ` text-anchor="middle" transform="rotate(90 274 ${cy})"`);
-    return `<g data-mem="${m}"><title>MC${m} · ${escapeXml(lang.name)} ${Math.round(lang.share * 100)}%</title>${rect(left ? 11 : 270, y, 23, h, p.diePhy)}${slices}${box(left ? 10 : 269, y - 1, 25, h + 2, p.text3)}${name}</g>`;
+    return `<g data-mem="${m}"><title>${escapeXml(lang.name)} ${Math.round(lang.share * 100)}%</title>${rect(left ? 11 : 270, y, 23, h, p.diePhy)}${slices}${box(left ? 10 : 269, y - 1, 25, h + 2, p.text3)}${name}</g>`;
   });
 
   // GPCs: GPC0-3 above the L2 band, GPC4-7 below; slots without a repo are fused off.
@@ -70,10 +70,10 @@ function renderDie(data) {
       } else raw += rect(x, y, 7, 37, "none", ` data-sm="${g}-${s}" data-lit="false"`);
     }
     const edge = fused ? p.text3 : p.silverLight;
-    const tag = rect(gx, gy, 34, 16, p.bg) + box(gx, gy, 34, 16, edge) + label(gx + 4, gy + 12, `GPC${g}`, fused ? p.text3 : p.text, ` data-gpc-label="${g}"`);
+    const tag = rect(gx, gy, 16, 16, p.bg) + box(gx, gy, 16, 16, edge) + label(gx + 8, gy + 12, `${g + 1}`, fused ? p.text3 : p.text, ` text-anchor="middle" data-gpc-label="${g}"`);
     const body = rect(gx + 2, gy + 17, 50, 2, "url(#die-logic)") + raw + tint + box(gx, gy, 54, 100, edge, fused ? ` stroke-dasharray="3 2"` : "") + tag;
-    if (fused) return `<g data-fused="${g}"><title>GPC${g} · fused off</title>${body}${rect(gx + 9, gy + 50, 36, 16, p.bg)}${box(gx + 9, gy + 50, 36, 16, p.text3)}${label(gx + 27, gy + 62, "FUSED", p.text3, ` text-anchor="middle"`)}</g>`;
-    return `<g data-gpc="${g}"><title>GPC${g} · ${escapeXml(repo.title)}: ${repo.contributions} contributions · ${lit} of ${SMS_PER_GPC} SMs</title>${body}</g>`;
+    if (fused) return `<g data-fused="${g}"><title>Cluster ${g + 1}, unused</title>${body}${rect(gx + 9, gy + 50, 36, 16, p.bg)}${box(gx + 9, gy + 50, 36, 16, p.text3)}${label(gx + 27, gy + 62, "FUSED", p.text3, ` text-anchor="middle"`)}</g>`;
+    return `<g data-gpc="${g}"><title>${g + 1}. ${escapeXml(repo.title)}: ${repo.contributions} contributions</title>${body}</g>`;
   });
 
   return `<g data-die="1" transform="translate(${MARGIN} ${MARGIN})" font-family="${COND}" font-weight="500" font-size="${TYPE.label}">
@@ -81,7 +81,6 @@ function renderDie(data) {
     ${box(6, 6, 292, 248, p.dieRing)}${box(8, 8, 288, 244, p.dieRing, ` stroke-opacity="0.6"`)}
     ${mcs.join("")}
     ${rect(37, 119, 229, 22, "url(#die-sram)")}${box(36, 118, 231, 24, p.text3)}
-    ${rect(126, 122, 52, 16, p.bg)}${box(126, 122, 52, 16, p.text3)}${label(152, 134, "L2 CACHE", p.text2, ` text-anchor="middle"`)}
     ${gpcs.join("")}
   </g>`;
 }
@@ -89,26 +88,27 @@ function renderDie(data) {
 export function renderHero(data, { fonts = "" } = {}) {
   const W = README_W;
   const H = 308;
-  // --- Side panel: one focal name, then the GPC map with the same log-scale SM strip the die uses ---
+  // --- Side panel: the name, then the project list with the same log-scale strip the die lights ---
   const px = MARGIN + REGION.w + 32;
   const right = W - MARGIN;
-  const rowY = (g) => 180 + g * 14;
-  const gpcMap = data.repos
+  const rowY = (g) => 172 + g * 16;
+  const total = data.repos.reduce((n, r) => n + r.contributions, 0);
+  const rows = data.repos
     .map((repo, g) => {
       const y = rowY(g);
       const lit = litSMs(repo.contributions);
       const cells = SM_THRESHOLDS.map((_, s) => `<rect x="${px + 216 + s * 10}" y="${y - 8}" width="8" height="8" fill="${s < lit ? p.ramp[smLevel(s) - 1] : p.well}"/>`).join("");
-      return `<text x="${px}" y="${y}" font-family="${COND}" font-size="${TYPE.label}" fill="${p.text3}">GPC${g}</text><text x="${px + 48}" y="${y}" font-size="${TYPE.body}" fill="${p.text}">${escapeXml(repo.title)}</text><g shape-rendering="crispEdges">${cells}</g><text x="${right}" y="${y}" text-anchor="end" font-size="${TYPE.body}" fill="${p.text2}" style="font-variant-numeric:tabular-nums">${repo.contributions}</text>`;
+      return `<text x="${px}" y="${y}" font-size="${TYPE.label}" fill="${p.text3}" data-row="${g}">${g + 1}</text><text x="${px + 24}" y="${y}" font-size="${TYPE.body}" fill="${p.text}">${escapeXml(repo.title)}</text><g shape-rendering="crispEdges">${cells}</g><text x="${right}" y="${y}" text-anchor="end" font-size="${TYPE.body}" fill="${p.text2}" style="font-variant-numeric:tabular-nums">${repo.contributions}</text>`;
     })
     .join("");
-  const memory = data.languages
+  const languages = data.languages
     .slice(0, 6)
     .map((l) => `${escapeXml(l.name)} ${Math.round(l.share * 100)}%`)
-    .join(" · ");
+    .join(", ");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">
   <title id="t">Zachary Stubbs</title>
-  <desc id="d">An annotated GPU die shot wired to GitHub: ${data.repos.length} clusters of ${SMS_PER_GPC} SMs are projects whose SMs light up on a log scale of my contributions; the six memory controllers are my main languages (${memory}).</desc>
+  <desc id="d">A GPU die drawn from my GitHub data. Each of its ${data.repos.length} numbered clusters is a project, lit on a log scale of my ${total} contributions to them; the memory columns down the sides are my main languages (${languages}).</desc>
   <defs>
     ${fonts ? `<style>${fonts}</style>` : ""}
     ${fixed(`<pattern id="die-sram" width="3" height="2" patternUnits="userSpaceOnUse"><rect width="3" height="1" fill="${p.dieSram}"/></pattern>
@@ -119,16 +119,13 @@ export function renderHero(data, { fonts = "" } = {}) {
   ${fixed(renderDie(data))}
 
   <g font-family="${SANS}" font-weight="500">
-    <text x="${px}" y="${MARGIN + 9}" font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1.6" fill="${p.text3}">ZS-102 · ${data.repos.length} GPC · ${data.repos.length * SMS_PER_GPC} SM · 384-BIT</text>
-    <text x="${px - 2}" y="72" font-weight="600" font-size="${TYPE.display}" letter-spacing="-0.4" fill="${p.text}">Zachary Stubbs</text>
-    <text x="${px}" y="96" font-weight="700" font-size="${TYPE.body}" fill="${p.text}">Low-level systems · Computer architecture · Operating systems</text>
-    <text x="${px}" y="116" font-size="${TYPE.body}" fill="${p.text2}">Electrical &amp; Computer Engineering at Texas A&amp;M</text>
-    <text x="${px}" y="140" font-size="${TYPE.label}" fill="${p.text3}">${data.totals.contributions} contributions across ${data.repos.length} projects · GPC7 is fused off</text>
-    <g font-family="${COND}" font-size="${TYPE.label}" letter-spacing="1" fill="${p.text3}">
-      <text x="${px}" y="162">GPC</text><text x="${px + 48}" y="162">PROJECT</text><text x="${px + 216}" y="162">SMs LIT (LOG)</text><text x="${right}" y="162" text-anchor="end">CONTRIBUTIONS</text>
+    <text x="${px - 2}" y="60" font-weight="600" font-size="${TYPE.display}" letter-spacing="-0.4" fill="${p.text}">Zachary Stubbs</text>
+    <text x="${px}" y="86" font-size="${TYPE.body}" fill="${p.text2}">Electrical &amp; Computer Engineering at Texas A&amp;M</text>
+    <text x="${px}" y="110" font-size="${TYPE.label}" fill="${p.text3}">${total} contributions to these ${data.repos.length} projects</text>
+    <g font-size="${TYPE.label}" fill="${p.text3}">
+      <text x="${px + 24}" y="148">Project</text><text x="${right}" y="148" text-anchor="end">Contributions</text>
     </g>
-    ${gpcMap}
-    <text x="${px}" y="${H - MARGIN}" font-family="${COND}" font-size="${TYPE.label}" fill="${p.text3}">Memory: ${memory}</text>
+    ${rows}
   </g>
 </svg>
 `;

@@ -2059,31 +2059,5 @@
         }
       ]
     ]
-  },
-  "languages": [
-    {
-      "name": "Python",
-      "share": 0.334
-    },
-    {
-      "name": "Rust",
-      "share": 0.227
-    },
-    {
-      "name": "Svelte",
-      "share": 0.122
-    },
-    {
-      "name": "TypeScript",
-      "share": 0.115
-    },
-    {
-      "name": "Swift",
-      "share": 0.053
-    },
-    {
-      "name": "Kotlin",
-      "share": 0.049
-    }
-  ]
+  }
 }

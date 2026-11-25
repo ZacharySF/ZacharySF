@@ -1,4 +1,4 @@
-// Snapshots the GitHub data that drives the GPU hero into assets/gpu-data.json.
+// Snapshots the GitHub data that drives the hero and the graphics card into assets/gpu-data.json.
 // Usage: GITHUB_TOKEN=<personal token> node scripts/fetch-github.mjs
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -6,12 +6,10 @@ import { fileURLToPath } from "node:url";
 import { categories } from "./projects.mjs";
 
 export const USER = "ZacharySF";
-export const HBM_STACKS = 6;
 
-// One GPC per entry, in the README's order, so cluster N on the die is the Nth project below it.
-// `extra` repos are mirrors or spin-offs counted with it.
-// The die has 8 GPC slots; unused slots are drawn fused off, as on a harvested chip.
-const GPCS = [
+// One entry per marked block on the die photo, in the README's order, so block N is the Nth project.
+// `extra` repos are mirrors or spin-offs counted with it. The photo has 8 blocks; spare ones stay unmarked.
+const PROJECTS = [
   { slug: "cleanroom" },
   { slug: "misaos" },
   { slug: "nixos-config" },
@@ -19,7 +17,7 @@ const GPCS = [
   { slug: "orion-mesh" },
   { slug: "ginseng", extra: ["ZacharySF/ginseng-tui"] },
   { slug: "ichor", extra: ["nunera/Ichor"] },
-  { slug: "rika", hbm: false }, // Python-heavy app; kept out of the memory controllers
+  { slug: "rika" },
 ];
 
 const KINDS = {
@@ -42,19 +40,6 @@ export function countByRepo(collections) {
     }
   }
   return counts;
-}
-
-/** Merge per-repo language byte counts and return the top `n` as shares of all bytes. */
-export function shareLanguages(perRepo, n) {
-  const bytes = new Map();
-  for (const languages of perRepo) {
-    for (const [name, count] of Object.entries(languages)) bytes.set(name, (bytes.get(name) ?? 0) + count);
-  }
-  const total = [...bytes.values()].reduce((a, b) => a + b, 0);
-  return [...bytes.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, n)
-    .map(([name, count]) => ({ name, share: Math.round((count / total) * 1000) / 1000 }));
 }
 
 const token = () => {
@@ -117,7 +102,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const counts = await allContributions(user.created_at);
 
   const zero = { commits: 0, pullRequests: 0, issues: 0, reviews: 0 };
-  const repos = GPCS.map(({ slug, extra = [] }) => {
+  const repos = PROJECTS.map(({ slug, extra = [] }) => {
     const project = projects.get(slug);
     if (!project) throw new Error(`unknown project slug ${slug}`);
     const names = [project.repo, ...extra];
@@ -127,20 +112,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     return { title: project.title, repos: names, contributions, breakdown };
   });
 
-  const ignored = new Set(["HTML", "CSS", "Dockerfile", "mdsvex", "Jupyter Notebook"]); // metrics' ignore list, plus notebooks
-  const hbmRepos = GPCS.filter((g) => g.hbm !== false).flatMap((g) => [projects.get(g.slug).repo, ...(g.extra ?? [])]);
-  const perRepo = await Promise.all(hbmRepos.map((name) => rest(`repos/${name}/languages`)));
-  const languages = shareLanguages(
-    perRepo.map((langs) => Object.fromEntries(Object.entries(langs).filter(([name]) => !ignored.has(name)))),
-    HBM_STACKS,
-  );
-
   const data = {
     user: USER,
     generatedAt: new Date().toISOString().slice(0, 10),
     repos,
     calendar: await contributionCalendar(),
-    languages,
   };
   const out = join(dirname(fileURLToPath(import.meta.url)), "../assets/gpu-data.json");
   writeFileSync(out, `${JSON.stringify(data, null, 2)}\n`);

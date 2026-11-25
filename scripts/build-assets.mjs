@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderCalendarCard } from "./card.mjs";
 import { DIAGRAMS } from "./diagrams.mjs";
-import { renderHero } from "./gpu.mjs";
+import { DIE, renderHero } from "./gpu.mjs";
 import { categories, stack } from "./projects.mjs";
 import { fixed, fontCss, MARGIN, PALETTE as p, RADIUS, README_W, retheme, SANS, TYPE } from "./style.mjs";
 import { escapeXml } from "./svg.mjs";
@@ -119,7 +119,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const fonts = fontCss(root);
   const textFonts = fontCss(root, ["sans500", "sans600", "cond500"]);
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
-  write("hero", renderHero(gpuData, { fonts }));
+  const photo = `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", DIE.file)).toString("base64")}`;
+  write("hero", renderHero(gpuData, { fonts, photo }));
   write("card-row", renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
   for (const project of categories.flatMap((c) => c.projects)) {
     const images = Object.fromEntries(project.shots.filter((s) => s.file).map((s) => [s.file, `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", s.file)).toString("base64")}`]));

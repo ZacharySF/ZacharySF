@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mjs";
 import { DIE, dimFor, litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo } from "./fetch-github.mjs";
-import { categories } from "./projects.mjs";
-import { CARD_PHOTO, CARD_WEEKS, calendarStats, GRID_RAMP, renderCardPhoto } from "./card.mjs";
+import { categories, stack } from "./projects.mjs";
+import { CALLOUTS, CARD, LABEL, renderCardRow, wrapItems } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const allProjects = categories.flatMap((c) => c.projects);
@@ -17,72 +17,55 @@ const malformedTags = (svg) =>
     .map(([tag]) => tag.slice(0, 120));
 
 test("every generated image is well-formed: no attribute without a quoted value", async () => {
-  const { renderCardRow, renderStack } = await import("./build-assets.mjs");
-  const { stack } = await import("./projects.mjs");
   const images = {
     hero: renderHero(gpuData),
-    cardRow: renderCardRow(calendar, renderStack(stack)),
+    cardRow: renderCardRow(stack),
     ...Object.fromEntries(allProjects.map((pr) => [pr.slug, renderProject(pr)])),
   };
   for (const [name, svg] of Object.entries(images)) assert.deepEqual(malformedTags(svg), [], name);
 });
 
-const day = (date, count, level) => ({ date, count, level });
-const calendar = {
-  total: 9,
-  weeks: [
-    [day("2026-01-04", 0, 0), day("2026-01-05", 2, 1), day("2026-01-06", 3, 2), day("2026-01-07", 0, 0)],
-    [day("2026-01-11", 1, 1), day("2026-01-12", 1, 1), day("2026-01-13", 2, 4)],
-  ],
-};
+const sampleStack = [
+  ["Systems", ["Linux", "R&D <kernel>"]],
+  ["Apps", ["Svelte"]],
+];
 
-test("calendarStats finds the best streak, busiest day and daily average", () => {
-  const stats = calendarStats(calendar.weeks.flat());
-  assert.equal(stats.bestStreak, 3);
-  assert.equal(stats.currentStreak, 3, "streak still running on the last day");
-  assert.deepEqual(stats.maxDay, { date: "2026-01-06", count: 3 });
-  assert.equal(stats.average, 1.29);
-});
-
-const cell = (svg, date) => {
-  const m = svg.match(new RegExp(`<rect data-day="${date}" data-level="(\\d)" x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)" height="([\\d.]+)"[^>]* fill="(#\\w+)"`));
-  return { level: Number(m[1]), x: Number(m[2]), y: Number(m[3]), w: Number(m[4]), h: Number(m[5]), fill: m[6] };
-};
-
-test("the card photo carries the contribution graph: one square per day, shaded by level", () => {
-  const svg = renderCardPhoto(calendar);
-  assert.equal((svg.match(/data-day=/g) ?? []).length, 7);
-  assert.equal(cell(svg, "2026-01-13").fill, GRID_RAMP[4]);
-  assert.equal(cell(svg, "2026-01-05").fill, GRID_RAMP[1]);
-  assert.equal(cell(svg, "2026-01-04").fill, GRID_RAMP[0], "a day without contributions is the empty colour");
-});
-
-test("the graph reads like GitHub's: one column per week left to right, Sunday on top", () => {
-  const svg = renderCardPhoto(calendar);
-  assert.equal(cell(svg, "2026-01-04").x, cell(svg, "2026-01-06").x, "same week, same column");
-  assert.ok(cell(svg, "2026-01-04").y < cell(svg, "2026-01-05").y, "Sunday above Monday");
-  assert.ok(cell(svg, "2026-01-11").x > cell(svg, "2026-01-04").x, "a later week sits further right");
-});
-
-test("the graph sits on the photo's empty white corner, and its caption names the period", () => {
-  const svg = renderCardPhoto(calendar);
-  assert.ok(svg.includes(`>9 contributions in the last ${CARD_WEEKS} weeks<`));
-  const { x, y, w, h, clear } = CARD_PHOTO;
-  const [cx0, cy0] = [x + clear[0] * w, y + clear[1] * h];
-  for (const m of svg.matchAll(/<rect data-day="[^"]+" data-level="\d" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
-    const [sx, sy, sw, sh] = m.slice(1).map(Number);
-    assert.ok(sx >= cx0 && sy >= cy0 && sx + sw <= x + w - 6 && sy + sh <= y + h - 6, `square at ${sx},${sy} leaves the white corner`);
+test("every tech stack row is one callout on the card: its name, its items, and a leader that ends on the photo", () => {
+  const svg = renderCardRow(stack);
+  assert.equal((svg.match(/data-callout=/g) ?? []).length, stack.length);
+  for (const [label, items] of stack) {
+    assert.ok(CALLOUTS[label], `${label} has no part on the card to point at`);
+    assert.ok(svg.includes(`>${label}</text>`), label);
+    for (const item of items) assert.ok(svg.includes(item), `${label}: ${item}`);
+    const [, x, y] = svg.match(new RegExp(`<circle data-anchor="${label}" cx="([\\d.]+)" cy="([\\d.]+)"`)).map(Number);
+    assert.ok(x > CARD.x && x < CARD.x + CARD.w && y > CARD.y && y < CARD.y + CARD.h, `${label} points off the card`);
   }
 });
 
-test("the card photo lines up with the die photo above it and ends before the tech stack", async () => {
-  const { renderCardRow, renderStack, STACK_X } = await import("./build-assets.mjs");
-  const { stack } = await import("./projects.mjs");
-  const svg = renderCardRow(calendar, renderStack(stack));
-  const [x, , w, h] = svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
-  assert.equal(x, DIE.x, "same left edge as the die photo");
-  assert.ok(x + w <= STACK_X - 16, "a gutter before the tech stack");
-  assert.ok(Math.abs(w / h - CARD_PHOTO.aspect) < 0.01, "the photo keeps its proportions");
+test("labels keep to their column beside the card: every line fits, none runs under the photo or off the image", () => {
+  for (const [label, items] of stack) {
+    for (const line of [label, ...wrapItems(items, LABEL.chars)]) assert.ok(line.length <= LABEL.chars, `${label}: "${line}"`);
+  }
+  const column = LABEL.chars * LABEL.charWidth;
+  assert.ok(LABEL.left + column <= CARD.x - 8, "left labels end before the card");
+  assert.ok(LABEL.right >= CARD.x + CARD.w + 8 && LABEL.right + column <= README_W - LABEL.left + 4, "right labels sit between the card and the margin");
+});
+
+test("wrapItems breaks a list between items, keeps their order and their commas", () => {
+  assert.deepEqual(wrapItems(["C++", "C", "Rust", "Python", "TypeScript", "Swift"], 22), ["C++, C, Rust, Python,", "TypeScript, Swift"]);
+  assert.deepEqual(wrapItems(["Linux"], 22), ["Linux"]);
+});
+
+test("markup characters in the tech stack are escaped", () => {
+  const svg = renderCardRow(sampleStack);
+  assert.ok(svg.includes("R&amp;D &lt;kernel&gt;") && !svg.includes("<kernel>"));
+});
+
+test("the card figure's text follows the page theme; the photo and its markers stay as they are", () => {
+  const light = retheme(renderCardRow(stack));
+  const page = light.replace(/<!--fixed-->[\s\S]*?<!--\/fixed-->/g, "");
+  assert.notEqual(page, light, "the photo is marked as fixed");
+  for (const role of ["text", "text2", "text3"]) assert.ok(!page.includes(PALETTE[role]), `${role} would be unreadable on white`);
 });
 
 test("each project marks one block on the die photo, numbered like its row; spare blocks stay unmarked", () => {
@@ -233,14 +216,6 @@ test("countByRepo sums every contribution kind per repository", () => {
   ]);
   assert.deepEqual(counts.get("a/x"), { commits: 13, pullRequests: 2, issues: 1, reviews: 0 });
   assert.deepEqual(counts.get("a/y"), { commits: 1, pullRequests: 0, issues: 0, reviews: 4 });
-});
-
-test("every tech stack row fits beside its label", async () => {
-  const { stack } = await import("./projects.mjs");
-  const { STACK, renderStack } = await import("./build-assets.mjs");
-  for (const [, items] of stack) assert.ok(items.length <= STACK.charsPerLine, items);
-  const svg = renderStack(stack);
-  assert.equal((svg.match(/data-stack-row=/g) ?? []).length, stack.length);
 });
 
 test("README image links carry each file's version, so a redrawn image is not served from a stale cache", () => {

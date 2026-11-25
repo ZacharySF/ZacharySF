@@ -6,13 +6,13 @@
 // A picture is a file in assets/shots, saved at twice its slot size (lead 1064 x 664, thumbnail
 // 500 x 296, full width 1596 x twice `height`), or a `diagram` drawn by scripts/diagrams.mjs.
 
-// Tech stack, shown beside the graphics card: [label, items].
+// Tech stack: [label, items]. Each row is labelled on a part of the graphics card (CALLOUTS in card.mjs).
 export const stack = [
-  ["Languages", "C++, C, Rust, Python, TypeScript, Swift"],
-  ["Embedded", "ESP32, FreeRTOS, PlatformIO, Raspberry Pi"],
-  ["Systems", "Linux, NixOS, bubblewrap, dinit, Docker"],
-  ["Networks", "ROS 2, CycloneDDS, BATMAN-adv, UDP"],
-  ["Apps", "Svelte, Tone.js, Cloudflare, Tauri"],
+  ["Systems", ["Linux", "NixOS", "bubblewrap", "dinit", "Docker"]],
+  ["Apps", ["Svelte", "Tone.js", "Cloudflare", "Tauri"]],
+  ["Embedded", ["ESP32", "FreeRTOS", "PlatformIO", "Raspberry Pi"]],
+  ["Languages", ["C++", "C", "Rust", "Python", "TypeScript", "Swift"]],
+  ["Networks", ["ROS 2", "CycloneDDS", "BATMAN-adv", "UDP"]],
 ];
 
 export const categories = [

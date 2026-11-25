@@ -1,4 +1,4 @@
-// Snapshots the GitHub data that drives the hero and the graphics card into assets/gpu-data.json.
+// Snapshots the GitHub data that drives the hero (my contributions per project) into assets/gpu-data.json.
 // Usage: GITHUB_TOKEN=<personal token> node scripts/fetch-github.mjs
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -83,19 +83,6 @@ async function allContributions(createdAt) {
   return countByRepo(windows);
 }
 
-const LEVELS = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
-const CALENDAR = `query($login: String!) { user(login: $login) { contributionsCollection { contributionCalendar {
-  totalContributions weeks { contributionDays { date contributionCount contributionLevel } } } } } }`;
-
-/** The last year of daily contributions, as on the profile's contribution graph. */
-async function contributionCalendar() {
-  const { contributionCalendar: c } = (await graphql(CALENDAR, { login: USER })).user.contributionsCollection;
-  return {
-    total: c.totalContributions,
-    weeks: c.weeks.map((w) => w.contributionDays.map((d) => ({ date: d.date, count: d.contributionCount, level: LEVELS[d.contributionLevel] }))),
-  };
-}
-
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const projects = new Map(categories.flatMap((c) => c.projects).map((p) => [p.slug, p]));
   const user = await rest(`users/${USER}`);
@@ -116,7 +103,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     user: USER,
     generatedAt: new Date().toISOString().slice(0, 10),
     repos,
-    calendar: await contributionCalendar(),
   };
   const out = join(dirname(fileURLToPath(import.meta.url)), "../assets/gpu-data.json");
   writeFileSync(out, `${JSON.stringify(data, null, 2)}\n`);

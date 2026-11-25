@@ -4,7 +4,7 @@ import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mj
 import { DIE, dimFor, litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo } from "./fetch-github.mjs";
 import { categories, stack } from "./projects.mjs";
-import { CALLOUTS, CARD, LABEL, renderCardRow, wrapItems } from "./card.mjs";
+import { LIST, PARTS, renderCardRow } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const allProjects = categories.flatMap((c) => c.projects);
@@ -30,30 +30,39 @@ const sampleStack = [
   ["Apps", ["Svelte"]],
 ];
 
-test("every tech stack row is one callout on the card: its name, its items, and a leader that ends on the photo", () => {
+const photoRect = (svg) => svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
+
+test("every tech stack row is one lettered part on the board photo and one row of the list with the same letter", () => {
   const svg = renderCardRow(stack);
-  assert.equal((svg.match(/data-callout=/g) ?? []).length, stack.length);
-  for (const [label, items] of stack) {
-    assert.ok(CALLOUTS[label], `${label} has no part on the card to point at`);
-    assert.ok(svg.includes(`>${label}</text>`), label);
-    for (const item of items) assert.ok(svg.includes(item), `${label}: ${item}`);
-    const [, x, y] = svg.match(new RegExp(`<circle data-anchor="${label}" cx="([\\d.]+)" cy="([\\d.]+)"`)).map(Number);
-    assert.ok(x > CARD.x && x < CARD.x + CARD.w && y > CARD.y && y < CARD.y + CARD.h, `${label} points off the card`);
+  assert.equal((svg.match(/data-mark=/g) ?? []).length, stack.length);
+  stack.forEach(([label, items], i) => {
+    const letter = "ABCDEFGH"[i];
+    assert.ok(PARTS[label], `${label} has no part on the board to mark`);
+    assert.ok(svg.includes(`data-mark-label="${i}">${letter}<`), `${label} is marked ${letter} on the photo`);
+    assert.ok(svg.includes(`data-row="${i}">${letter}<`), `${label} is row ${letter}`);
+    assert.ok(svg.includes(`>${label}</text>`) && svg.includes(`>${items.join(", ")}</text>`), label);
+  });
+});
+
+test("every marked part lies on the board photo", () => {
+  const svg = renderCardRow(stack);
+  const [px, py, pw, ph] = photoRect(svg);
+  const marks = [...svg.matchAll(/<rect data-dim="\d" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)];
+  assert.equal(marks.length, stack.length);
+  for (const m of marks) {
+    const [x, y, w, h] = m.slice(1).map(Number);
+    assert.ok(x >= px && y >= py && x + w <= px + pw && y + h <= py + ph, `part at ${x},${y} off the photo`);
   }
 });
 
-test("labels keep to their column beside the card: every line fits, none runs under the photo or off the image", () => {
+test("the board figure sits on the hero's grid: same photo column, same list column, lists end inside the margin", () => {
+  const [px, , pw] = photoRect(renderCardRow(stack));
+  const [hx, , hw] = photoRect(renderHero(gpuData));
+  assert.deepEqual([px, pw], [hx, hw], "board photo under the die photo, same width");
+  assert.equal(LIST.x, DIE.panelX, "list starts where the hero's project list starts");
   for (const [label, items] of stack) {
-    for (const line of [label, ...wrapItems(items, LABEL.chars)]) assert.ok(line.length <= LABEL.chars, `${label}: "${line}"`);
+    assert.ok(LIST.itemsX + items.join(", ").length * LIST.charWidth <= README_W - DIE.x, `${label} runs past the right margin`);
   }
-  const column = LABEL.chars * LABEL.charWidth;
-  assert.ok(LABEL.left + column <= CARD.x - 8, "left labels end before the card");
-  assert.ok(LABEL.right >= CARD.x + CARD.w + 8 && LABEL.right + column <= README_W - LABEL.left + 4, "right labels sit between the card and the margin");
-});
-
-test("wrapItems breaks a list between items, keeps their order and their commas", () => {
-  assert.deepEqual(wrapItems(["C++", "C", "Rust", "Python", "TypeScript", "Swift"], 22), ["C++, C, Rust, Python,", "TypeScript, Swift"]);
-  assert.deepEqual(wrapItems(["Linux"], 22), ["Linux"]);
 });
 
 test("markup characters in the tech stack are escaped", () => {
@@ -61,7 +70,7 @@ test("markup characters in the tech stack are escaped", () => {
   assert.ok(svg.includes("R&amp;D &lt;kernel&gt;") && !svg.includes("<kernel>"));
 });
 
-test("the card figure's text follows the page theme; the photo and its markers stay as they are", () => {
+test("the board figure's text follows the page theme; the photo and its marks stay as they are", () => {
   const light = retheme(renderCardRow(stack));
   const page = light.replace(/<!--fixed-->[\s\S]*?<!--\/fixed-->/g, "");
   assert.notEqual(page, light, "the photo is marked as fixed");
@@ -70,9 +79,9 @@ test("the card figure's text follows the page theme; the photo and its markers s
 
 test("each project marks one block on the die photo, numbered like its row; spare blocks stay unmarked", () => {
   const svg = renderHero(gpuData);
-  assert.equal((svg.match(/data-block=/g) ?? []).length, gpuData.repos.length);
+  assert.equal((svg.match(/data-mark=/g) ?? []).length, gpuData.repos.length);
   for (let g = 0; g < gpuData.repos.length; g++) {
-    assert.ok(svg.includes(`data-block-label="${g}">${g + 1}<`), `block ${g + 1}`);
+    assert.ok(svg.includes(`data-mark-label="${g}">${g + 1}<`), `block ${g + 1}`);
     assert.ok(svg.includes(`data-row="${g}">${g + 1}<`), `row ${g + 1}`);
   }
   assert.ok(svg.includes(">Project<") && svg.includes(">Contributions<"), "list columns are headed");
@@ -90,8 +99,7 @@ test("a block is dimmed less the more I contributed: the top of the scale is cle
 
 test("every marked block lies on the die photo, which stays left of the side panel", () => {
   const svg = renderHero(gpuData);
-  const photo = svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
-  const [px, py, pw, ph] = photo;
+  const [px, py, pw, ph] = photoRect(svg);
   assert.ok(px + pw <= DIE.panelX - 16, "a gutter between photo and name");
   for (const m of svg.matchAll(/<rect data-dim="\d" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
     const [x, y, w, h] = m.slice(1).map(Number);

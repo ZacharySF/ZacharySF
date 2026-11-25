@@ -1,5 +1,5 @@
 // Renders every generated image on the profile with the shared tokens in style.mjs:
-// the die-photo hero (gpu.mjs), the graphics card labelled with the tech stack (card.mjs), and one block
+// the die-photo hero (gpu.mjs), the board photo marked with the tech stack (card.mjs), and one block
 // of pictures per project (the README carries each project's title and description).
 // Each image is written twice, for GitHub's dark and light pages (see retheme in style.mjs).
 // Usage: node scripts/build-assets.mjs   (reads assets/gpu-data.json and assets/shots, writes assets/**/*.svg)
@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CARD, renderCardRow } from "./card.mjs";
+import { BOARD, renderCardRow } from "./card.mjs";
 import { DIAGRAMS } from "./diagrams.mjs";
 import { DIE, renderHero } from "./gpu.mjs";
 import { categories, stack } from "./projects.mjs";
@@ -84,10 +84,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const fonts = fontCss(root);
   const textFonts = fontCss(root, ["sans500", "sans600", "cond500"]);
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
-  const MIME = { jpg: "image/jpeg", webp: "image/webp" };
-  const dataUri = (file) => `data:${MIME[file.split(".").pop()]};base64,${readFileSync(join(root, "assets/shots", file)).toString("base64")}`;
+  const dataUri = (file) => `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", file)).toString("base64")}`;
   write("hero", renderHero(gpuData, { fonts, photo: dataUri(DIE.file) }));
-  write("card-row", renderCardRow(stack, { fonts: textFonts, photo: dataUri(CARD.file) }));
+  write("card-row", renderCardRow(stack, { fonts: textFonts, photo: dataUri(BOARD.file) }));
   for (const project of categories.flatMap((c) => c.projects)) {
     const images = Object.fromEntries(project.shots.filter((s) => s.file).map((s) => [s.file, dataUri(s.file)]));
     write(`projects/${project.slug}`, renderProject(project, { images, fonts: textFonts }));

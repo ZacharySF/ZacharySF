@@ -4,6 +4,7 @@
 // GF110 has four clusters of four SMs; each SM pair (one row of a cluster) is one marked block, so the
 // eight blocks are numbered down the left half, then down the right, in the README's project order.
 // A block is dimmed less the more I contributed to its project (log scale, 1 to 128 contributions).
+import { markedPhoto } from "./photo.mjs";
 import { escapeXml } from "./svg.mjs";
 import { fixed, MARGIN, PALETTE as p, README_W, SANS, TYPE } from "./style.mjs";
 
@@ -21,7 +22,6 @@ export const litSMs = (contributions) => SM_THRESHOLDS.filter((t) => contributio
 // Steps climb the blue ramp along the scale.
 const level = (s) => 1 + Math.floor((3 * s) / (STEPS - 1));
 const MAX_DIM = 0.55;
-const OUTSIDE_DIM = 0.35;
 /** Opacity of the shade over a project's block: clear at the top of the scale, MAX_DIM with none. */
 export const dimFor = (contributions) => Math.round(MAX_DIM * (1 - litSMs(contributions) / STEPS) * 100) / 100;
 
@@ -31,7 +31,7 @@ export const dimFor = (contributions) => Math.round(MAX_DIM * (1 - litSMs(contri
  */
 export const DIE = {
   file: "gf110-die.jpg",
-  credit: "Die and card photos by Fritzchens Fritz (CC0)",
+  credit: "Die and board photos by Fritzchens Fritz (CC0)",
   x: MARGIN,
   y: MARGIN,
   w: 276,
@@ -49,26 +49,16 @@ export const DIE = {
   ],
 };
 
-const r1 = (v) => Math.round(v * 10) / 10;
-
-/** The photo, a shade over everything but the marked blocks, and each block's shade, outline and number. */
+/** The die photo with each project's block marked: its number, and a shade that lifts with my contributions. */
 function renderDie(data, photo) {
   const { x, y, w, h } = DIE;
-  const marked = data.repos.slice(0, DIE.blocks.length).map((repo, g) => {
-    const [fx0, fy0, fx1, fy1] = DIE.blocks[g];
-    return { repo, g, bx: r1(x + fx0 * w), by: r1(y + fy0 * h), bw: r1((fx1 - fx0) * w), bh: r1((fy1 - fy0) * h) };
-  });
-  const holes = marked.map(({ bx, by, bw, bh }) => `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#000"/>`).join("");
-  const blocks = marked
-    .map(({ repo, g, bx, by, bw, bh }) => {
-      const tag = `<rect x="${bx}" y="${by}" width="13" height="13" fill="#0b0f15" fill-opacity="0.85"/><text x="${r1(bx + 6.5)}" y="${r1(by + 10)}" text-anchor="middle" font-size="10" fill="#f1f5ff" data-block-label="${g}">${g + 1}</text>`;
-      return `<g data-block="${g}"><title>${g + 1}. ${escapeXml(repo.title)}: ${repo.contributions} contributions</title><rect data-dim="${g}" x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#05070a" fill-opacity="${dimFor(repo.contributions)}"/><rect x="${r1(bx + 0.5)}" y="${r1(by + 0.5)}" width="${r1(bw - 1)}" height="${r1(bh - 1)}" fill="none" stroke="#f1f5ff" stroke-opacity="0.6"/>${tag}</g>`;
-    })
-    .join("");
-  return `<rect data-photo="1" x="${x}" y="${y}" width="${w}" height="${h}" fill="#15181f"/>${photo ? `<image href="${photo}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>` : ""}
-    <mask id="die-unmarked"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff"/>${holes}</mask>
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#05070a" fill-opacity="${OUTSIDE_DIM}" mask="url(#die-unmarked)"/>
-    <g font-family="${SANS}" font-weight="600">${blocks}</g>`;
+  const marks = data.repos.slice(0, DIE.blocks.length).map((repo, g) => ({
+    rect: DIE.blocks[g],
+    label: `${g + 1}`,
+    title: `${g + 1}. ${repo.title}: ${repo.contributions} contributions`,
+    dim: dimFor(repo.contributions),
+  }));
+  return markedPhoto({ id: "die", href: photo, x, y, w, h, marks });
 }
 
 /** `photo` is the die photo as a data URI (omitted in tests: the frame stays empty). */

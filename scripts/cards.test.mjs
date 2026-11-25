@@ -4,7 +4,7 @@ import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mj
 import { DIE, dimFor, litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo } from "./fetch-github.mjs";
 import { categories } from "./projects.mjs";
-import { CARD_WEEKS, calendarStats, renderCalendarCard } from "./card.mjs";
+import { CARD_PHOTO, CARD_WEEKS, calendarStats, GRID_RAMP, renderCardPhoto } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const allProjects = categories.flatMap((c) => c.projects);
@@ -21,7 +21,7 @@ test("every generated image is well-formed: no attribute without a quoted value"
   const { stack } = await import("./projects.mjs");
   const images = {
     hero: renderHero(gpuData),
-    cardRow: renderCardRow(renderCalendarCard(calendar), renderStack(stack)),
+    cardRow: renderCardRow(calendar, renderStack(stack)),
     ...Object.fromEntries(allProjects.map((pr) => [pr.slug, renderProject(pr)])),
   };
   for (const [name, svg] of Object.entries(images)) assert.deepEqual(malformedTags(svg), [], name);
@@ -32,7 +32,7 @@ const calendar = {
   total: 9,
   weeks: [
     [day("2026-01-04", 0, 0), day("2026-01-05", 2, 1), day("2026-01-06", 3, 2), day("2026-01-07", 0, 0)],
-    [day("2026-01-08", 1, 1), day("2026-01-09", 1, 1), day("2026-01-10", 2, 4)],
+    [day("2026-01-11", 1, 1), day("2026-01-12", 1, 1), day("2026-01-13", 2, 4)],
   ],
 };
 
@@ -44,40 +44,45 @@ test("calendarStats finds the best streak, busiest day and daily average", () =>
   assert.equal(stats.average, 1.29);
 });
 
-test("the card's LED matrix has one LED per day, lit with the die's blue ramp", () => {
-  const svg = renderCalendarCard(calendar);
+const cell = (svg, date) => {
+  const m = svg.match(new RegExp(`<rect data-day="${date}" data-level="(\\d)" x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)" height="([\\d.]+)"[^>]* fill="(#\\w+)"`));
+  return { level: Number(m[1]), x: Number(m[2]), y: Number(m[3]), w: Number(m[4]), h: Number(m[5]), fill: m[6] };
+};
+
+test("the card photo carries the contribution graph: one square per day, shaded by level", () => {
+  const svg = renderCardPhoto(calendar);
   assert.equal((svg.match(/data-day=/g) ?? []).length, 7);
-  assert.ok(svg.includes(`data-day="2026-01-10" data-level="4" fill="${PALETTE.ramp[3]}"`));
-  assert.ok(svg.includes(`data-day="2026-01-05" data-level="1" fill="${PALETTE.ramp[0]}"`));
-  assert.ok(!/undefined|NaN/.test(svg));
+  assert.equal(cell(svg, "2026-01-13").fill, GRID_RAMP[4]);
+  assert.equal(cell(svg, "2026-01-05").fill, GRID_RAMP[1]);
+  assert.equal(cell(svg, "2026-01-04").fill, GRID_RAMP[0], "a day without contributions is the empty colour");
 });
 
-test("the card's engraved total says what it counts and over how many weeks", () => {
-  const svg = renderCalendarCard(calendar);
-  assert.ok(svg.includes(`>9 CONTRIBUTIONS IN ${CARD_WEEKS} WEEKS<`), "the engraving names its period");
+test("the graph reads like GitHub's: one column per week left to right, Sunday on top", () => {
+  const svg = renderCardPhoto(calendar);
+  assert.equal(cell(svg, "2026-01-04").x, cell(svg, "2026-01-06").x, "same week, same column");
+  assert.ok(cell(svg, "2026-01-04").y < cell(svg, "2026-01-05").y, "Sunday above Monday");
+  assert.ok(cell(svg, "2026-01-11").x > cell(svg, "2026-01-04").x, "a later week sits further right");
 });
 
-test("the LEDs read like GitHub's contribution graph: one column per week left to right, Sunday on top", () => {
-  const svg = renderCalendarCard(calendar);
-  const led = (date) => {
-    const m = svg.match(new RegExp(`data-day="${date}"[^>]* cx="([\\d.]+)" cy="([\\d.]+)"`));
-    return { x: Number(m[1]), y: Number(m[2]) };
-  };
-  assert.equal(led("2026-01-04").x, led("2026-01-06").x, "same week, same column");
-  assert.ok(led("2026-01-04").y < led("2026-01-05").y, "Sunday above Monday");
-  assert.ok(led("2026-01-08").x > led("2026-01-04").x, "a later week sits further right");
-});
-
-test("gold PCIe contacts sit on the edge connector's PCB tabs, below the card body", () => {
-  const svg = renderCalendarCard(calendar);
-  const rects = (attr) => [...svg.matchAll(new RegExp(`<rect x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)" height="([\\d.]+)"[^>]*${attr}`, "g"))].map((m) => m.slice(1, 5).map(Number));
-  const tabs = rects("data-edge");
-  const contacts = rects("data-contact");
-  assert.equal(tabs.length, 2, "short and long segment either side of the key notch");
-  assert.ok(contacts.length >= 40, `x16 connector has a full row of contacts, got ${contacts.length}`);
-  for (const [x, y, w, h] of contacts) {
-    assert.ok(tabs.some(([tx, ty, tw, th]) => x >= tx && y >= ty && x + w <= tx + tw && y + h <= ty + th), `contact off the PCB edge at ${x},${y}`);
+test("the graph sits on the photo's empty white corner, and its caption names the period", () => {
+  const svg = renderCardPhoto(calendar);
+  assert.ok(svg.includes(`>9 contributions in the last ${CARD_WEEKS} weeks<`));
+  const { x, y, w, h, clear } = CARD_PHOTO;
+  const [cx0, cy0] = [x + clear[0] * w, y + clear[1] * h];
+  for (const m of svg.matchAll(/<rect data-day="[^"]+" data-level="\d" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
+    const [sx, sy, sw, sh] = m.slice(1).map(Number);
+    assert.ok(sx >= cx0 && sy >= cy0 && sx + sw <= x + w - 6 && sy + sh <= y + h - 6, `square at ${sx},${sy} leaves the white corner`);
   }
+});
+
+test("the card photo lines up with the die photo above it and ends before the tech stack", async () => {
+  const { renderCardRow, renderStack, STACK_X } = await import("./build-assets.mjs");
+  const { stack } = await import("./projects.mjs");
+  const svg = renderCardRow(calendar, renderStack(stack));
+  const [x, , w, h] = svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
+  assert.equal(x, DIE.x, "same left edge as the die photo");
+  assert.ok(x + w <= STACK_X - 16, "a gutter before the tech stack");
+  assert.ok(Math.abs(w / h - CARD_PHOTO.aspect) < 0.01, "the photo keeps its proportions");
 });
 
 test("each project marks one block on the die photo, numbered like its row; spare blocks stay unmarked", () => {

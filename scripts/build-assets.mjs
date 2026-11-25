@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderCalendarCard } from "./card.mjs";
+import { CARD_PHOTO, CARD_WEEKS, renderCardPhoto } from "./card.mjs";
 import { DIAGRAMS } from "./diagrams.mjs";
 import { DIE, renderHero } from "./gpu.mjs";
 import { categories, stack } from "./projects.mjs";
@@ -63,8 +63,9 @@ export function renderProject(project, { images = {}, fonts = "" } = {}) {
 `;
 }
 
-/** The tech stack, sized to sit beside the 440 x 232 graphics card (no flush on the page). */
-export const STACK = { width: 400, height: 232, charsPerLine: 44 };
+/** The tech stack, beside the card photo from STACK_X to the README's right margin. */
+export const STACK_X = 452;
+export const STACK = { width: README_W - STACK_X, height: 232, charsPerLine: 44 };
 
 export function renderStack(rows, { fonts = "" } = {}) {
   const { width: W, height: H } = STACK;
@@ -86,14 +87,13 @@ export function renderStack(rows, { fonts = "" } = {}) {
 `;
 }
 
-/** The graphics card (left) and tech stack (right) as one 846 px row, so they never wrap apart. */
-export function renderCardRow(cardSvg, stackSvg, { fonts = "" } = {}) {
-  const H = STACK.height;
-  const place = (svg, x) => svg.replace("<svg ", `<svg x="${x}" y="0" `);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${README_W}" height="${H}" viewBox="0 0 ${README_W} ${H}" role="img" aria-label="Contributions on a graphics card, and tech stack">
+/** The card photo with its contribution graph (left) and the tech stack (right) as one 846 px row. */
+export function renderCardRow(calendar, stackSvg, { fonts = "", photo = "" } = {}) {
+  const H = CARD_PHOTO.y + CARD_PHOTO.h + 26;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${README_W}" height="${H}" viewBox="0 0 ${README_W} ${H}" role="img" aria-label="My last ${CARD_WEEKS} weeks of contributions drawn on a photo of a GTX 580, and my tech stack">
   ${fonts ? `<defs><style>${fonts}</style></defs>` : ""}
-  ${place(cardSvg, 0)}
-  ${place(stackSvg, 384)}
+  ${renderCardPhoto(calendar, { photo })}
+  ${stackSvg.replace("<svg ", `<svg x="${STACK_X}" y="0" `)}
 </svg>
 `;
 }
@@ -119,11 +119,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const fonts = fontCss(root);
   const textFonts = fontCss(root, ["sans500", "sans600", "cond500"]);
   const gpuData = JSON.parse(readFileSync(join(root, "assets/gpu-data.json"), "utf8"));
-  const photo = `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", DIE.file)).toString("base64")}`;
-  write("hero", renderHero(gpuData, { fonts, photo }));
-  write("card-row", renderCardRow(renderCalendarCard(gpuData.calendar), renderStack(stack), { fonts }));
+  const jpeg = (file) => `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", file)).toString("base64")}`;
+  write("hero", renderHero(gpuData, { fonts, photo: jpeg(DIE.file) }));
+  write("card-row", renderCardRow(gpuData.calendar, renderStack(stack), { fonts, photo: jpeg(CARD_PHOTO.file) }));
   for (const project of categories.flatMap((c) => c.projects)) {
-    const images = Object.fromEntries(project.shots.filter((s) => s.file).map((s) => [s.file, `data:image/jpeg;base64,${readFileSync(join(root, "assets/shots", s.file)).toString("base64")}`]));
+    const images = Object.fromEntries(project.shots.filter((s) => s.file).map((s) => [s.file, jpeg(s.file)]));
     write(`projects/${project.slug}`, renderProject(project, { images, fonts: textFonts }));
   }
   const readmePath = join(root, "README.md");

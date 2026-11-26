@@ -4,7 +4,7 @@ import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mj
 import { DIE, dimFor, litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo } from "./fetch-github.mjs";
 import { categories, stack } from "./projects.mjs";
-import { LIST, PARTS, renderCardRow } from "./card.mjs";
+import { BOARD, PARTS, renderCardRow } from "./card.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const allProjects = categories.flatMap((c) => c.projects);
@@ -32,36 +32,43 @@ const sampleStack = [
 
 const photoRect = (svg) => svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
 
-test("every tech stack row is one lettered part on the board photo and one row of the list with the same letter", () => {
+const outlines = (svg, key) => [...svg.matchAll(new RegExp(`<rect data-outline="${key}" x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)" height="([\\d.]+)"[^>]* stroke="(#\\w+)"`, "g"))].map((m) => ({ x: +m[1], y: +m[2], w: +m[3], h: +m[4], stroke: m[5] }));
+
+test("every tech stack row has one colour: it outlines the row's parts on the board and marks its legend entry", () => {
   const svg = renderCardRow(stack);
-  assert.equal((svg.match(/data-mark=/g) ?? []).length, stack.length);
-  stack.forEach(([label, items], i) => {
-    const letter = "ABCDEFGH"[i];
-    assert.ok(PARTS[label], `${label} has no part on the board to mark`);
-    assert.ok(svg.includes(`data-mark-label="${i}">${letter}<`), `${label} is marked ${letter} on the photo`);
-    assert.ok(svg.includes(`data-row="${i}">${letter}<`), `${label} is row ${letter}`);
-    assert.ok(svg.includes(`>${label}</text>`) && svg.includes(`>${items.join(", ")}</text>`), label);
-  });
+  for (const [label, items] of stack) {
+    const part = PARTS[label];
+    assert.ok(part, `${label} has no part on the board to outline`);
+    const drawn = outlines(svg, label);
+    assert.equal(drawn.length, part.rects.length, `${label}: every piece of the part is outlined`);
+    for (const o of drawn) assert.equal(o.stroke, part.color, `${label} outline colour`);
+    assert.ok(new RegExp(`<rect data-key="${label}"[^>]* fill="${part.color}"`).test(svg), `${label} legend swatch`);
+    assert.ok(svg.includes(`>${label}</text>`), label);
+    for (const item of items) assert.ok(svg.includes(`>${item}</text>`), `${label}: ${item} on its own line`);
+  }
+  const colours = stack.map(([label]) => PARTS[label].color);
+  assert.equal(new Set(colours).size, colours.length, "no two rows share a colour");
 });
 
-test("every marked part lies on the board photo", () => {
+test("every outlined part lies on the board photo", () => {
   const svg = renderCardRow(stack);
   const [px, py, pw, ph] = photoRect(svg);
-  const marks = [...svg.matchAll(/<rect data-dim="\d" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)];
-  assert.equal(marks.length, stack.length);
-  for (const m of marks) {
-    const [x, y, w, h] = m.slice(1).map(Number);
-    assert.ok(x >= px && y >= py && x + w <= px + pw && y + h <= py + ph, `part at ${x},${y} off the photo`);
+  for (const [label] of stack) {
+    for (const { x, y, w, h } of outlines(svg, label)) {
+      assert.ok(x >= px && y >= py && x + w <= px + pw && y + h <= py + ph, `${label} outline at ${x},${y} off the photo`);
+    }
   }
 });
 
-test("the board figure sits on the hero's grid: same photo column, same list column, lists end inside the margin", () => {
-  const [px, , pw] = photoRect(renderCardRow(stack));
-  const [hx, , hw] = photoRect(renderHero(gpuData));
-  assert.deepEqual([px, pw], [hx, hw], "board photo under the die photo, same width");
-  assert.equal(LIST.x, DIE.panelX, "list starts where the hero's project list starts");
-  for (const [label, items] of stack) {
-    assert.ok(LIST.itemsX + items.join(", ").length * LIST.charWidth <= README_W - DIE.x, `${label} runs past the right margin`);
+test("the legend sits beside the photo: right of it, inside the margin, and no taller than the photo", () => {
+  const svg = renderCardRow(stack);
+  assert.equal(BOARD.x, DIE.x, "board photo starts on the die photo's left edge");
+  const texts = [...svg.matchAll(/<text x="([\d.]+)" y="([\d.]+)" [^>]*font-size="(\d+)"[^>]*>([^<]*)</g)].map((m) => ({ x: +m[1], y: +m[2], size: +m[3], chars: m[4].length }));
+  assert.ok(texts.length >= stack.length * 2);
+  for (const t of texts) {
+    assert.ok(t.x >= BOARD.x + BOARD.w + 16, `text at x ${t.x} runs under the photo`);
+    assert.ok(t.x + t.chars * t.size * 0.6 <= README_W - DIE.x, `text at ${t.x},${t.y} runs past the right margin`);
+    assert.ok(t.y - t.size >= BOARD.y - 2 && t.y <= BOARD.y + BOARD.h, `text at y ${t.y} leaves the photo's height`);
   }
 });
 

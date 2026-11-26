@@ -54,11 +54,12 @@ function renderDie(data, photo) {
   const { x, y, w, h } = DIE;
   const marks = data.repos.slice(0, DIE.blocks.length).map((repo, g) => ({
     rect: DIE.blocks[g],
+    key: g,
     label: `${g + 1}`,
     title: `${g + 1}. ${repo.title}: ${repo.contributions} contributions`,
     dim: dimFor(repo.contributions),
   }));
-  return markedPhoto({ id: "die", href: photo, x, y, w, h, marks });
+  return markedPhoto({ id: "die", href: photo, x, y, w, h, marks, shade: 0.35 });
 }
 
 /** `photo` is the die photo as a data URI (omitted in tests: the frame stays empty). */

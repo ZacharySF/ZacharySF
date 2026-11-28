@@ -4,7 +4,7 @@ import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mj
 import { DIE, dimFor, litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
 import { countByRepo } from "./fetch-github.mjs";
 import { categories, stack } from "./projects.mjs";
-import { BOARD, PARTS, renderCardRow } from "./card.mjs";
+import { renderStack } from "./stack.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const allProjects = categories.flatMap((c) => c.projects);
@@ -19,7 +19,7 @@ const malformedTags = (svg) =>
 test("every generated image is well-formed: no attribute without a quoted value", async () => {
   const images = {
     hero: renderHero(gpuData),
-    cardRow: renderCardRow(stack),
+    stack: renderStack(stack),
     ...Object.fromEntries(allProjects.map((pr) => [pr.slug, renderProject(pr)])),
   };
   for (const [name, svg] of Object.entries(images)) assert.deepEqual(malformedTags(svg), [], name);
@@ -32,56 +32,35 @@ const sampleStack = [
 
 const photoRect = (svg) => svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
 
-const outlines = (svg, key) => [...svg.matchAll(new RegExp(`<rect data-outline="${key}" x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)" height="([\\d.]+)"[^>]* stroke="(#\\w+)"`, "g"))].map((m) => ({ x: +m[1], y: +m[2], w: +m[3], h: +m[4], stroke: m[5] }));
+const rows = (svg) =>
+  [...svg.matchAll(/<text data-area="([^"]+)" x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)<\/text><text data-tools="[^"]+" x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g)].map((m) => ({ area: m[1], nameX: +m[2], y: +m[3], name: m[4], toolsX: +m[5], toolsY: +m[6], tools: m[7] }));
 
-test("every tech stack row has one colour: it outlines the row's parts on the board and marks its legend entry", () => {
-  const svg = renderCardRow(stack);
-  for (const [label, items] of stack) {
-    const part = PARTS[label];
-    assert.ok(part, `${label} has no part on the board to outline`);
-    const drawn = outlines(svg, label);
-    assert.equal(drawn.length, part.rects.length, `${label}: every piece of the part is outlined`);
-    for (const o of drawn) assert.equal(o.stroke, part.color, `${label} outline colour`);
-    assert.ok(new RegExp(`<rect data-key="${label}"[^>]* fill="${part.color}"`).test(svg), `${label} legend swatch`);
-    assert.ok(svg.includes(`>${label}</text>`), label);
-    for (const item of items) assert.ok(svg.includes(`>${item}</text>`), `${label}: ${item} on its own line`);
-  }
-  const colours = stack.map(([label]) => PARTS[label].color);
-  assert.equal(new Set(colours).size, colours.length, "no two rows share a colour");
+test("every tech stack row is one line: the area's name, then its tools, in stack order", () => {
+  const drawn = rows(renderStack(stack));
+  assert.deepEqual(drawn.map((r) => r.name), stack.map(([area]) => area));
+  assert.deepEqual(drawn.map((r) => r.tools), stack.map(([, items]) => items.join(", ")));
+  for (const r of drawn) assert.equal(r.toolsY, r.y, `${r.area}: name and tools share a baseline`);
+  const gaps = drawn.slice(1).map((r, i) => r.y - drawn[i].y);
+  assert.equal(new Set(gaps).size, 1, "rows sit at one even pitch");
 });
 
-test("every outlined part lies on the board photo", () => {
-  const svg = renderCardRow(stack);
-  const [px, py, pw, ph] = photoRect(svg);
-  for (const [label] of stack) {
-    for (const { x, y, w, h } of outlines(svg, label)) {
-      assert.ok(x >= px && y >= py && x + w <= px + pw && y + h <= py + ph, `${label} outline at ${x},${y} off the photo`);
-    }
-  }
-});
-
-test("the legend sits beside the photo: right of it, inside the margin, and no taller than the photo", () => {
-  const svg = renderCardRow(stack);
-  assert.equal(BOARD.x, DIE.x, "board photo starts on the die photo's left edge");
-  const texts = [...svg.matchAll(/<text x="([\d.]+)" y="([\d.]+)" [^>]*font-size="(\d+)"[^>]*>([^<]*)</g)].map((m) => ({ x: +m[1], y: +m[2], size: +m[3], chars: m[4].length }));
-  assert.ok(texts.length >= stack.length * 2);
-  for (const t of texts) {
-    assert.ok(t.x >= BOARD.x + BOARD.w + 16, `text at x ${t.x} runs under the photo`);
-    assert.ok(t.x + t.chars * t.size * 0.6 <= README_W - DIE.x, `text at ${t.x},${t.y} runs past the right margin`);
-    assert.ok(t.y - t.size >= BOARD.y - 2 && t.y <= BOARD.y + BOARD.h, `text at y ${t.y} leaves the photo's height`);
+test("the list hangs on the header's grid: names under the photo's left edge, tools in the project list's column", () => {
+  for (const r of rows(renderStack(stack))) {
+    assert.equal(r.nameX, DIE.x, `${r.area} name on the photo's left edge`);
+    assert.equal(r.toolsX, DIE.panelX, `${r.area} tools on the project list's column`);
+    assert.ok(r.toolsX + r.tools.length * 7.6 <= README_W - DIE.x, `${r.area} tools run past the right margin`);
   }
 });
 
 test("markup characters in the tech stack are escaped", () => {
-  const svg = renderCardRow(sampleStack);
+  const svg = renderStack(sampleStack);
   assert.ok(svg.includes("R&amp;D &lt;kernel&gt;") && !svg.includes("<kernel>"));
 });
 
-test("the board figure's text follows the page theme; the photo and its marks stay as they are", () => {
-  const light = retheme(renderCardRow(stack));
-  const page = light.replace(/<!--fixed-->[\s\S]*?<!--\/fixed-->/g, "");
-  assert.notEqual(page, light, "the photo is marked as fixed");
-  for (const role of ["text", "text2", "text3"]) assert.ok(!page.includes(PALETTE[role]), `${role} would be unreadable on white`);
+test("the tech stack is plain type that follows the page theme: no dark-page text colour left on the light page", () => {
+  const light = retheme(renderStack(stack));
+  for (const role of ["text", "text2", "text3", "structure"]) assert.ok(!light.includes(PALETTE[role]), `${role} would be unreadable on white`);
+  assert.ok(!/<image|<filter|Gradient/.test(light), "type and one rule only");
 });
 
 test("each project marks one block on the die photo, numbered like its row; spare blocks stay unmarked", () => {

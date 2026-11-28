@@ -31,7 +31,7 @@ export const dimFor = (contributions) => Math.round(MAX_DIM * (1 - litSMs(contri
  */
 export const DIE = {
   file: "gf110-die.jpg",
-  credit: "Die and board photos by Fritzchens Fritz (CC0)",
+  credit: "Die photo by Fritzchens Fritz (CC0)",
   x: MARGIN,
   y: MARGIN,
   w: 276,

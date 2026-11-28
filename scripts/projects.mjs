@@ -6,13 +6,13 @@
 // A picture is a file in assets/shots, saved at twice its slot size (lead 1064 x 664, thumbnail
 // 500 x 296, full width 1596 x twice `height`), or a `diagram` drawn by scripts/diagrams.mjs.
 
-// Tech stack, shown beside the graphics card: [label, items].
+// Tech stack: [area, items], in list order; set as type under the hero by stack.mjs.
 export const stack = [
-  ["Languages", "C++, C, Rust, Python, TypeScript, Swift"],
-  ["Embedded", "ESP32, FreeRTOS, PlatformIO, Raspberry Pi"],
-  ["Systems", "Linux, NixOS, bubblewrap, dinit, Docker"],
-  ["Networks", "ROS 2, CycloneDDS, BATMAN-adv, UDP"],
-  ["Apps", "Svelte, Tone.js, Cloudflare, Tauri"],
+  ["Languages", ["C++", "C", "Rust", "Python", "TypeScript", "Swift"]],
+  ["Embedded", ["ESP32", "FreeRTOS", "PlatformIO", "Raspberry Pi"]],
+  ["Systems", ["Linux", "NixOS", "bubblewrap", "dinit", "Docker"]],
+  ["Networks", ["ROS 2", "CycloneDDS", "BATMAN-adv", "UDP"]],
+  ["Apps", ["Svelte", "Tone.js", "Cloudflare", "Tauri"]],
 ];
 
 export const categories = [

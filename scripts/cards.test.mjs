@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BLOCK, renderProject, slotsFor, versionImages } from "./build-assets.mjs";
-import { litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
-import { countByRepo, shareLanguages } from "./fetch-github.mjs";
-import { categories } from "./projects.mjs";
-import { CARD_WEEKS, calendarStats, renderCalendarCard } from "./card.mjs";
+import { DIE, dimFor, litSMs, renderHero, SM_THRESHOLDS } from "./gpu.mjs";
+import { countByRepo } from "./fetch-github.mjs";
+import { categories, stack } from "./projects.mjs";
+import { renderStack } from "./stack.mjs";
 import { fixed, LIGHT, PALETTE, README_W, retheme } from "./style.mjs";
 
 const allProjects = categories.flatMap((c) => c.projects);
@@ -17,69 +17,80 @@ const malformedTags = (svg) =>
     .map(([tag]) => tag.slice(0, 120));
 
 test("every generated image is well-formed: no attribute without a quoted value", async () => {
-  const { renderCardRow, renderStack } = await import("./build-assets.mjs");
-  const { stack } = await import("./projects.mjs");
   const images = {
     hero: renderHero(gpuData),
-    cardRow: renderCardRow(renderCalendarCard(calendar), renderStack(stack)),
+    stack: renderStack(stack),
     ...Object.fromEntries(allProjects.map((pr) => [pr.slug, renderProject(pr)])),
   };
   for (const [name, svg] of Object.entries(images)) assert.deepEqual(malformedTags(svg), [], name);
 });
 
-const day = (date, count, level) => ({ date, count, level });
-const calendar = {
-  total: 9,
-  weeks: [
-    [day("2026-01-04", 0, 0), day("2026-01-05", 2, 1), day("2026-01-06", 3, 2), day("2026-01-07", 0, 0)],
-    [day("2026-01-08", 1, 1), day("2026-01-09", 1, 1), day("2026-01-10", 2, 4)],
-  ],
-};
+const sampleStack = [
+  ["Systems", ["Linux", "R&D <kernel>"]],
+  ["Apps", ["Svelte"]],
+];
 
-test("calendarStats finds the best streak, busiest day and daily average", () => {
-  const stats = calendarStats(calendar.weeks.flat());
-  assert.equal(stats.bestStreak, 3);
-  assert.equal(stats.currentStreak, 3, "streak still running on the last day");
-  assert.deepEqual(stats.maxDay, { date: "2026-01-06", count: 3 });
-  assert.equal(stats.average, 1.29);
+const photoRect = (svg) => svg.match(/<rect data-photo="1" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
+
+const rows = (svg) =>
+  [...svg.matchAll(/<text data-area="([^"]+)" x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)<\/text><text data-tools="[^"]+" x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g)].map((m) => ({ area: m[1], nameX: +m[2], y: +m[3], name: m[4], toolsX: +m[5], toolsY: +m[6], tools: m[7] }));
+
+test("every tech stack row is one line: the area's name, then its tools, in stack order", () => {
+  const drawn = rows(renderStack(stack));
+  assert.deepEqual(drawn.map((r) => r.name), stack.map(([area]) => area));
+  assert.deepEqual(drawn.map((r) => r.tools), stack.map(([, items]) => items.join(", ")));
+  for (const r of drawn) assert.equal(r.toolsY, r.y, `${r.area}: name and tools share a baseline`);
+  const gaps = drawn.slice(1).map((r, i) => r.y - drawn[i].y);
+  assert.equal(new Set(gaps).size, 1, "rows sit at one even pitch");
 });
 
-test("the card's LED matrix has one LED per day, lit with the die's blue ramp", () => {
-  const svg = renderCalendarCard(calendar);
-  assert.equal((svg.match(/data-day=/g) ?? []).length, 7);
-  assert.ok(svg.includes(`data-day="2026-01-10" data-level="4" fill="${PALETTE.ramp[3]}"`));
-  assert.ok(svg.includes(`data-day="2026-01-05" data-level="1" fill="${PALETTE.ramp[0]}"`));
-  assert.ok(!/undefined|NaN/.test(svg));
-});
-
-test("the card's engraved total says what it counts and over how many weeks", () => {
-  const svg = renderCalendarCard(calendar);
-  assert.ok(svg.includes(`>9 CONTRIBUTIONS IN ${CARD_WEEKS} WEEKS<`), "the engraving names its period");
-});
-
-test("gold PCIe contacts lie on the edge connector's PCB tabs, not floating off the card", () => {
-  const svg = renderCalendarCard(calendar);
-  const polys = (attr) => [...svg.matchAll(new RegExp(`<polygon points="([^"]+)"[^>]*${attr}`, "g"))].map(([, pts]) => pts.split(" ").map((q) => q.split(",").map(Number)));
-  const tabs = polys("data-edge");
-  const contacts = polys("data-contact");
-  assert.equal(tabs.length, 2, "short and long segment either side of the key notch");
-  assert.ok(contacts.length >= 40, `x16 connector has a full row of contacts, got ${contacts.length}`);
-  // Convex containment: the point is on the inner side of every edge of the tab's top face.
-  const inside = (poly, [x, y]) => {
-    const sides = poly.map(([ax, ay], i) => {
-      const [bx, by] = poly[(i + 1) % poly.length];
-      return (bx - ax) * (y - ay) - (by - ay) * (x - ax);
-    });
-    return sides.every((c) => c >= -0.5) || sides.every((c) => c <= 0.5);
-  };
-  for (const contact of contacts) {
-    assert.ok(tabs.some((tab) => contact.every((pt) => inside(tab, pt))), `contact off the PCB edge: ${contact.join(" ")}`);
+test("the list hangs on the header's grid: names under the photo's left edge, tools in the project list's column", () => {
+  for (const r of rows(renderStack(stack))) {
+    assert.equal(r.nameX, DIE.x, `${r.area} name on the photo's left edge`);
+    assert.equal(r.toolsX, DIE.panelX, `${r.area} tools on the project list's column`);
+    assert.ok(r.toolsX + r.tools.length * 7.6 <= README_W - DIE.x, `${r.area} tools run past the right margin`);
   }
 });
 
-test("GPC slots without a repo are drawn fused off, as on a harvested die", () => {
+test("markup characters in the tech stack are escaped", () => {
+  const svg = renderStack(sampleStack);
+  assert.ok(svg.includes("R&amp;D &lt;kernel&gt;") && !svg.includes("<kernel>"));
+});
+
+test("the tech stack is plain type that follows the page theme: no dark-page text colour left on the light page", () => {
+  const light = retheme(renderStack(stack));
+  for (const role of ["text", "text2", "text3", "structure"]) assert.ok(!light.includes(PALETTE[role]), `${role} would be unreadable on white`);
+  assert.ok(!/<image|<filter|Gradient/.test(light), "type and one rule only");
+});
+
+test("each project marks one block on the die photo, numbered like its row; spare blocks stay unmarked", () => {
   const svg = renderHero(gpuData);
-  assert.equal((svg.match(/data-fused=/g) ?? []).length, 8 - gpuData.repos.length);
+  assert.equal((svg.match(/data-mark=/g) ?? []).length, gpuData.repos.length);
+  for (let g = 0; g < gpuData.repos.length; g++) {
+    assert.ok(svg.includes(`data-mark-label="${g}">${g + 1}<`), `block ${g + 1}`);
+    assert.ok(svg.includes(`data-row="${g}">${g + 1}<`), `row ${g + 1}`);
+  }
+  assert.ok(svg.includes(">Project<") && svg.includes(">Contributions<"), "list columns are headed");
+});
+
+test("a block is dimmed less the more I contributed: the top of the scale is clear, nothing is darkest", () => {
+  assert.equal(dimFor(5000), 0);
+  assert.equal(dimFor(SM_THRESHOLDS.at(-1)), 0);
+  assert.ok(dimFor(0) > dimFor(1) && dimFor(1) > dimFor(6) && dimFor(6) > dimFor(100));
+  const svg = renderHero(gpuData);
+  const dim = (g) => Number(svg.match(new RegExp(`data-dim="${g}"[^>]*fill-opacity="([\\d.]+)"`))[1]);
+  assert.equal(dim(0), dimFor(128));
+  assert.equal(dim(1), dimFor(0));
+});
+
+test("every marked block lies on the die photo, which stays left of the side panel", () => {
+  const svg = renderHero(gpuData);
+  const [px, py, pw, ph] = photoRect(svg);
+  assert.ok(px + pw <= DIE.panelX - 16, "a gutter between photo and name");
+  for (const m of svg.matchAll(/<rect data-dim="\d" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
+    const [x, y, w, h] = m.slice(1).map(Number);
+    assert.ok(x >= px && y >= py && x + w <= px + pw && y + h <= py + ph, `block at ${x},${y} off the photo`);
+  }
 });
 
 const sampleProject = {
@@ -152,10 +163,10 @@ test("the light variant recolours page text and leaves drawn hardware as it is",
   assert.ok(light.includes(`<rect fill="${LIGHT.ramp[3]}"/>`));
 });
 
-test("no dark-page text colour is left on the light hero outside the die", () => {
+test("no dark-page text colour is left on the light hero outside the photo", () => {
   const light = retheme(renderHero(gpuData));
   const page = light.replace(/<!--fixed-->[\s\S]*?<!--\/fixed-->/g, "");
-  assert.notEqual(page, light, "the die is marked as fixed hardware");
+  assert.notEqual(page, light, "the photo is marked as fixed");
   for (const role of ["text", "text2", "text3"]) assert.ok(!page.includes(PALETTE[role]), `${role} would be unreadable on white`);
   assert.ok(page.includes(`fill="${LIGHT.text}">Zachary Stubbs<`));
 });
@@ -168,56 +179,17 @@ const gpuData = {
     { title: "two & co", repos: ["a/two"], contributions: 0, breakdown: { commits: 0, pullRequests: 0, issues: 0, reviews: 0 } },
     { title: "three", repos: ["a/three"], contributions: 6, breakdown: { commits: 6, pullRequests: 0, issues: 0, reviews: 0 } },
   ],
-  languages: [
-    { name: "Rust", share: 0.5 },
-    { name: "C++", share: 0.25 },
-  ],
 };
 
-const litIn = (svg, gpc) => (svg.match(new RegExp(`data-sm="${gpc}-\\d+" data-lit="true"`, "g")) ?? []).length;
-
-test("each GPC is one repo with a full set of SMs, lit in proportion to its contributions", () => {
+test("every hero label is filled from the data and escaped", () => {
   const svg = renderHero(gpuData);
-  assert.equal((svg.match(/data-gpc=/g) ?? []).length, 3);
-  assert.equal((svg.match(/data-sm="0-\d+"/g) ?? []).length, SM_THRESHOLDS.length);
-  assert.equal(litIn(svg, 0), SM_THRESHOLDS.length, "top of the scale fills the GPC");
-  assert.equal(litIn(svg, 1), 0, "no contributions stays dark");
-  assert.equal(litIn(svg, 2), litSMs(6));
-  assert.ok(svg.includes("two &amp; co"));
-});
-
-test("every hero label is filled from the data (no undefined or NaN)", () => {
-  assert.ok(!/undefined|NaN/.test(renderHero(gpuData)));
+  assert.ok(!/undefined|NaN/.test(svg));
+  assert.ok(svg.includes(">two &amp; co<"));
 });
 
 test("the hero's total is the sum of the project rows it lists", () => {
   const svg = renderHero(gpuData);
   assert.ok(svg.includes(">134 contributions to these 3 projects<"), "128 + 0 + 6");
-});
-
-test("each memory controller is one language labelled with its share", () => {
-  const svg = renderHero(gpuData);
-  assert.equal((svg.match(/data-mem=/g) ?? []).length, 2);
-  assert.ok(svg.includes("Rust 50%") && svg.includes("C++ 25%"));
-});
-
-test("each language's PHY lights its 12 slices in proportion to its share, the largest all of them", () => {
-  const svg = renderHero(gpuData);
-  const lit = (m) => (svg.match(new RegExp(`data-mc="${m}" data-lit="1"`, "g")) ?? []).length;
-  assert.equal((svg.match(/data-mc="0"/g) ?? []).length, 12);
-  assert.equal(lit(0), 12, "Rust has the largest share");
-  assert.equal(lit(1), 6, "C++ has half of it");
-  assert.ok(svg.includes(">Rust</text>") && svg.includes(">C++</text>"), "each PHY is named on the die");
-});
-
-test("the die stays inside its 304 x 260 region left of the side panel", () => {
-  const svg = renderHero(gpuData);
-  const die = svg.match(/<g data-die="1" transform="translate\((\d+) (\d+)\)"/);
-  assert.deepEqual([Number(die[1]), Number(die[2])], [24, 24]);
-  const body = svg.slice(svg.indexOf("<g data-die"), svg.indexOf("<!--/fixed-->", svg.indexOf("<g data-die")));
-  for (const [, x, y, w, h] of body.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
-    assert.ok(+x >= 0 && +y >= 0 && +x + +w <= 304 && +y + +h <= 260, `rect ${x},${y} ${w}x${h}`);
-  }
 });
 
 test("SM thresholds climb from 1 to 128 contributions so small repos still show", () => {
@@ -238,29 +210,6 @@ test("countByRepo sums every contribution kind per repository", () => {
   ]);
   assert.deepEqual(counts.get("a/x"), { commits: 13, pullRequests: 2, issues: 1, reviews: 0 });
   assert.deepEqual(counts.get("a/y"), { commits: 1, pullRequests: 0, issues: 0, reviews: 4 });
-});
-
-test("shareLanguages merges bytes across repos and keeps the top n", () => {
-  const shares = shareLanguages([{ Rust: 60, C: 10 }, { Rust: 20, Python: 10 }], 2);
-  assert.deepEqual(shares, [
-    { name: "Rust", share: 0.8 },
-    { name: "C", share: 0.1 },
-  ]);
-});
-
-test("every tech stack row fits beside its label", async () => {
-  const { stack } = await import("./projects.mjs");
-  const { STACK, renderStack } = await import("./build-assets.mjs");
-  for (const [, items] of stack) assert.ok(items.length <= STACK.charsPerLine, items);
-  const svg = renderStack(stack);
-  assert.equal((svg.match(/data-stack-row=/g) ?? []).length, stack.length);
-});
-
-test("each cluster on the die carries the same number as its row in the project list", () => {
-  const svg = renderHero(gpuData);
-  for (let g = 0; g < 8; g++) assert.ok(svg.includes(`data-gpc-label="${g}">${g + 1}<`), `cluster ${g + 1}`);
-  for (let g = 0; g < gpuData.repos.length; g++) assert.ok(svg.includes(`data-row="${g}">${g + 1}<`), `row ${g + 1}`);
-  assert.ok(svg.includes(">Project<") && svg.includes(">Contributions<"), "map columns are headed");
 });
 
 test("README image links carry each file's version, so a redrawn image is not served from a stale cache", () => {

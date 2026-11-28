@@ -1,7 +1,7 @@
 // Figures drawn for project blocks that have no screenshot to show (Orion Mesh, nixos-config).
 // Each takes its slot size and returns markup for a w x h box with the shared tokens; the block
-// renderer clips it to the slot. They follow the hero's language: top-down hardware on a pixel grid,
-// kept dark on any page (fixed), with labels and traces around it. Facts come from the projects' READMEs.
+// renderer clips it to the slot. They are top-down hardware on a pixel grid, kept dark on any page
+// (fixed), with labels and traces around it. Facts come from the projects' READMEs.
 import { COND, fixed, PALETTE as p, SANS, TYPE } from "./style.mjs";
 import { escapeXml } from "./svg.mjs";
 
